@@ -111,7 +111,7 @@ export class Reactor {
 		return this.maxPowerOutput;
 	}
 	public GetTemperatureCritical() {
-		const degreeOfSuccess = 0.5;
+		const degreeOfSuccess = 0;
 		const allowedTemperature = Lerp(70, 90, degreeOfSuccess);
 		return this.temperature > allowedTemperature;
 	}
@@ -126,17 +126,27 @@ export class Reactor {
 	private targetFissionRate: number = 0;
 	private targetTurbineOutput: number = 0;
 
+	private signalFissionRate: number | null = null;
+	private signalTurbineOutput: number | null = null;
+
 	public SetLoad(load: number) {
 		this.load = load;
 	}
-	public SetFissionRate(rate: number) {
-		this.targetFissionRate = rate;
+	public SetFissionRate(rate: number | null) {
+		this.signalFissionRate = rate;
 	}
-	public SetTurbineOutput(output: number) {
-		this.targetTurbineOutput = output;
+	public SetTurbineOutput(output: number | null) {
+		this.signalTurbineOutput = output;
 	}
 
 	tick(deltaTime: number = 1) {
+		if (this.signalFissionRate !== null) {
+			this.targetFissionRate = adjustValueWithoutOverShooting(this.targetFissionRate, this.signalFissionRate, deltaTime * 5);
+		}
+		if (this.signalTurbineOutput !== null) {
+			this.targetTurbineOutput = adjustValueWithoutOverShooting(this.targetTurbineOutput, this.signalTurbineOutput, deltaTime * 5);
+		}
+
 		const temperatureDiff = this.generatedHeat - this.turbineOutput - this.temperature;
 		this.temperature += Clamp(Math.sign(temperatureDiff) * 10 * deltaTime, -Math.abs(temperatureDiff), Math.abs(temperatureDiff));
 
@@ -155,11 +165,8 @@ export class Reactor {
 	private get generatedHeat() {
 		return this.fissionRate * (this.fuelHeat / 100) * 2;
 	}
-
-	// private get restingTemperature() {
-	// 	return this.generatedHeat - this.turbineOutput;
-	// }
 }
 
 const Lerp = (a: number, b: number, amount: number) => a + (b - a) * amount;
 const Clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+const adjustValueWithoutOverShooting = (current: number, target: number, speed: number) => (target < current ? Math.max(target, current - speed) : Math.min(target, current + speed));

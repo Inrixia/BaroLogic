@@ -17,7 +17,7 @@ let lX = 0;
 // Reactor Max Output (KW) [5200]
 const rMAX = 5200;
 // Reactor Fuel Efficiency [65-100]
-const rE = 65;
+const rE = 75;
 // Reactor Fuel
 let rF = 0;
 
@@ -28,7 +28,7 @@ const sleep = promisify(setTimeout);
 const tickRate = 20;
 const reactor = new Reactor(5200, [Rods.Normal, Rods.Normal, Rods.Normal, Rods.Normal]);
 
-reactor.SetLoad(1000);
+reactor.SetLoad(5200);
 
 const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
 	const turbineRate = reactor.GetLoad() / (reactor.maxPowerOutput / 100);
@@ -39,11 +39,13 @@ const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
 	return [turbineRate, fissionRate];
 };
 
+const simSeconds = 10;
+
 let tick = 0;
 const mainLoop = () => {
 	tick++;
 	const [turbineRate, fissionRate] = reactorControllerTick();
-	reactor.tick(1 / 60);
+	reactor.tick(1 / 20);
 
 	console.clear();
 	console.log(`Power: ${reactor.GetPower().toFixed(2)} kW`);
@@ -61,8 +63,13 @@ const mainLoop = () => {
 	console.log(`Temperature Critical: ${reactor.GetTemperatureCritical()}`);
 	console.log();
 
-	console.log(`Tick: ${tick}`);
+	console.log(`Tick: ${tick}, Sec: ${tick / tickRate}`);
 
+	if (simSeconds > 0) {
+		if (tick >= tickRate * simSeconds) return;
+		mainLoop();
+		return;
+	}
 	sleep(1000 / tickRate).then(mainLoop);
 };
 mainLoop();
