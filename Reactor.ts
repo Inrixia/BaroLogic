@@ -68,19 +68,13 @@ export class Reactor {
 	}
 
 	private rods: Rods;
+	private deltaTime: number;
 
-	constructor(rMax: number, rods: Rods) {
-		this.rods = rods;
-		this.maxPowerOutput = rMax;
+	constructor(opts: { rMax: number; rods: Rods; tickRate: number }) {
+		this.rods = opts.rods;
+		this.maxPowerOutput = opts.rMax;
+		this.deltaTime = 1 / opts.tickRate;
 	}
-
-	// public get availableFuel() {
-	// 	return this.rods.reduce((durability, rod) => {
-	// 		if (rod === null) return durability;
-	// 		if (rod.durability !== 0) durability += rod.durability;
-	// 		return durability;
-	// 	}, 0);
-	// }
 
 	private get fuelHeat() {
 		return this.rods.reduce((heatValue, rod) => {
@@ -139,7 +133,9 @@ export class Reactor {
 		this.signalTurbineOutput = output;
 	}
 
-	tick(deltaTime: number = 1) {
+	tick(deltaTime?: number) {
+		deltaTime ??= this.deltaTime;
+
 		if (this.signalFissionRate !== null) {
 			this.targetFissionRate = adjustValueWithoutOverShooting(this.targetFissionRate, this.signalFissionRate, deltaTime * 5);
 		}

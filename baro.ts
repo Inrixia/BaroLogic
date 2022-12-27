@@ -26,7 +26,11 @@ import { Reactor, Rods } from "./Reactor";
 const sleep = promisify(setTimeout);
 
 const tickRate = 20;
-const reactor = new Reactor(5200, [Rods.Normal, Rods.Normal, Rods.Normal, Rods.Normal]);
+const reactor = new Reactor({
+	rMax: 5200,
+	rods: [Rods.Normal, Rods.Normal, Rods.Normal, Rods.Normal],
+	tickRate,
+});
 
 reactor.SetLoad(5200);
 
@@ -45,7 +49,7 @@ let tick = 0;
 const mainLoop = () => {
 	tick++;
 	const [turbineRate, fissionRate] = reactorControllerTick();
-	reactor.tick(1 / 20);
+	reactor.tick();
 
 	console.clear();
 	console.log(`Power: ${reactor.GetPower().toFixed(2)} kW`);
