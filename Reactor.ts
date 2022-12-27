@@ -25,16 +25,49 @@ export const Rods = {
 type Rods = [FuelRod, FuelRod, FuelRod, FuelRod];
 
 export class Reactor {
-	private temperature: number = 0;
-	private fissionRate: number = 0;
-	private turbineOutput: number = 0;
 	private load: number = 0;
 
-	private fuelConsumptionRate: number = 0.2;
+	private _maxPowerOutput: number = 0;
+	private set maxPowerOutput(max: number) {
+		this._maxPowerOutput = Math.max(0, max);
+	}
+	public get maxPowerOutput() {
+		return this._maxPowerOutput;
+	}
+
+	private _temperature: number = 0;
+	private set temperature(temp: number) {
+		this._temperature = Clamp(temp, 0, 100);
+	}
+	private get temperature() {
+		return this._temperature;
+	}
+
+	private _fissionRate: number = 0;
+	private set fissionRate(rate: number) {
+		this._fissionRate = Clamp(rate, 0, 100);
+	}
+	private get fissionRate() {
+		return this._fissionRate;
+	}
+
+	private _turbineOutput: number = 0;
+	private set turbineOutput(output: number) {
+		this._turbineOutput = Clamp(output, 0, 100);
+	}
+	private get turbineOutput() {
+		return this._turbineOutput;
+	}
+
+	private _fuelConsumptionRate: number = 0.2;
+	private set fuelConsumptionRate(rate: number) {
+		this._fuelConsumptionRate = Math.max(0, rate);
+	}
+	private get fuelConsumptionRate() {
+		return this._fuelConsumptionRate;
+	}
 
 	private rods: Rods;
-
-	public readonly maxPowerOutput;
 
 	constructor(rMax: number, rods: Rods) {
 		this.rods = rods;
@@ -57,24 +90,37 @@ export class Reactor {
 		}, 0);
 	}
 
-	public get Temperature() {
+	public GetTemperature() {
 		return this.temperature * 100;
 	}
-	public get FissionRate() {
-		return this.fissionRate;
-	}
-	public get TurbineOutput() {
-		return this.turbineOutput;
-	}
-	public get Power() {
+	public GetPower() {
 		const temperatureFactor = Math.min(this.temperature / 50, 1);
-		return -this.maxPowerOutput * Math.min(this.turbineOutput / 100, temperatureFactor);
+		return this.maxPowerOutput * Math.min(this.turbineOutput / 100, temperatureFactor);
 	}
-	public get Fuel() {
+	public GetFuel() {
 		return this.fuelHeat;
 	}
-	public get Load() {
+	public GetLoad() {
 		return this.load;
+	}
+
+	public GetRods() {
+		return [...this.rods];
+	}
+	public GetMaxPowerOutput() {
+		return this.maxPowerOutput;
+	}
+	public GetTemperatureCritical() {
+		const degreeOfSuccess = 0.5;
+		const allowedTemperature = Lerp(70, 90, degreeOfSuccess);
+		return this.temperature > allowedTemperature;
+	}
+
+	public GetHiddenFissionRate() {
+		return this.fissionRate;
+	}
+	public GetHiddenTurbineOutput() {
+		return this.turbineOutput;
 	}
 
 	private targetFissionRate: number = 0;
@@ -110,9 +156,9 @@ export class Reactor {
 		return this.fissionRate * (this.fuelHeat / 100) * 2;
 	}
 
-	private get restingTemperature() {
-		return this.generatedHeat - this.turbineOutput;
-	}
+	// private get restingTemperature() {
+	// 	return this.generatedHeat - this.turbineOutput;
+	// }
 }
 
 const Lerp = (a: number, b: number, amount: number) => a + (b - a) * amount;

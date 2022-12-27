@@ -30,16 +30,38 @@ const reactor = new Reactor(5200, [Rods.Normal, Rods.Normal, Rods.Normal, Rods.N
 
 reactor.SetLoad(1000);
 
+const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
+	const turbineRate = reactor.GetLoad() / (reactor.maxPowerOutput / 100);
+	reactor.SetTurbineOutput(turbineRate);
+	const fissionRate = turbineRate / (reactor.GetFuel() / rE);
+	reactor.SetFissionRate(fissionRate);
+
+	return [turbineRate, fissionRate];
+};
+
+let tick = 0;
 const mainLoop = () => {
-	reactor.tick();
+	tick++;
+	const [turbineRate, fissionRate] = reactorControllerTick();
+	reactor.tick(1 / 60);
 
 	console.clear();
-	console.log(`Power: ${reactor.Power} kW`);
-	console.log(`Fuel: ${reactor.Fuel}`);
-	console.log(`Turbine: ${reactor.TurbineOutput}`);
-	console.log(`Fission: ${reactor.FissionRate}`);
-	console.log(`Temperature: ${reactor.Temperature}`);
-	console.log(`Load: ${reactor.Load} kW`);
+	console.log(`Power: ${reactor.GetPower().toFixed(2)} kW`);
+	console.log(`Fuel: ${reactor.GetFuel()}`);
+	console.log(`Temperature: ${reactor.GetTemperature().toFixed(2)}`);
+	console.log(`Load: ${reactor.GetLoad()} kW`);
+
+	console.log();
+	console.log(`[Turbine] - Real: ${reactor.GetHiddenTurbineOutput().toFixed(2)}, Set: ${turbineRate.toFixed(2)}`);
+	console.log(`[Fission] - Real: ${reactor.GetHiddenFissionRate().toFixed(2)}, Set: ${fissionRate.toFixed(2)}`);
+	console.log();
+
+	console.log();
+	console.log(`Rods:${reactor.GetRods().map((rod) => ` ${rod?.durability.toFixed(2)}%`)}`);
+	console.log(`Temperature Critical: ${reactor.GetTemperatureCritical()}`);
+	console.log();
+
+	console.log(`Tick: ${tick}`);
 
 	sleep(1000 / tickRate).then(mainLoop);
 };
