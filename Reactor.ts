@@ -24,8 +24,13 @@ export const Rods = {
 
 type Rods = [FuelRod, FuelRod, FuelRod, FuelRod];
 
+type ReactorOptions = { rMax: number; rods: Rods; tickRate: number; fuelConsumptionRate?: number; meltDownDelay?: number; fireDelay?: number; reactorMaxHealth?: number };
+
 export class Reactor {
 	private load: number = 0;
+
+	private meltDownTimer = 0;
+	private fireTimer = 0;
 
 	private _maxPowerOutput: number = 0;
 	private set maxPowerOutput(max: number) {
@@ -59,7 +64,7 @@ export class Reactor {
 		return this._turbineOutput;
 	}
 
-	private _fuelConsumptionRate: number = 0.2;
+	private _fuelConsumptionRate: number = 0;
 	private set fuelConsumptionRate(rate: number) {
 		this._fuelConsumptionRate = Math.max(0, rate);
 	}
@@ -67,13 +72,35 @@ export class Reactor {
 		return this._fuelConsumptionRate;
 	}
 
+	private _meltDownDelay: number = 0;
+	private set meltDownDelay(delay: number) {
+		this._meltDownDelay = Math.max(0, delay);
+	}
+	private get meltDownDelay() {
+		return this._meltDownDelay;
+	}
+
+	private _fireDelay: number = 0;
+	private set fireDelay(delay: number) {
+		this._fireDelay = Math.max(0, delay);
+	}
+	private get fireDelay() {
+		return this._fireDelay;
+	}
+
 	private rods: Rods;
 	private deltaTime: number;
+	private reactorHealth: number;
+	private readonly reactorMaxHealth: number;
 
-	constructor(opts: { rMax: number; rods: Rods; tickRate: number }) {
+	constructor(opts: ReactorOptions) {
 		this.rods = opts.rods;
 		this.maxPowerOutput = opts.rMax;
 		this.deltaTime = 1 / opts.tickRate;
+		this.fuelConsumptionRate = opts.fuelConsumptionRate || 0.2;
+		this.meltDownDelay = opts.meltDownDelay || 120;
+		this.fireDelay = opts.fireDelay || 20;
+		this.reactorHealth = this.reactorMaxHealth = opts.reactorMaxHealth || 100;
 	}
 
 	private get fuelHeat() {
@@ -105,9 +132,23 @@ export class Reactor {
 		return this.maxPowerOutput;
 	}
 	public GetTemperatureCritical() {
-		const degreeOfSuccess = 0;
-		const allowedTemperature = Lerp(70, 90, degreeOfSuccess);
+		const allowedTemperature = Lerp(70, 90, 0);
 		return this.temperature > allowedTemperature;
+	}
+	public GetTemperatureHot() {
+		const allowedTemperature = Lerp(30, 70, 0);
+		return this.temperature > allowedTemperature;
+	}
+	private onFire: number = 0;
+	public GetOnFire() {
+		return this.onFire;
+	}
+	private melted: boolean = false;
+	public GetMelted() {
+		return this.melted;
+	}
+	public GetHealth() {
+		return this.reactorHealth;
 	}
 
 	public GetHiddenFissionRate() {
@@ -133,7 +174,9 @@ export class Reactor {
 		this.signalTurbineOutput = output;
 	}
 
-	tick(deltaTime?: number) {
+	public tick(deltaTime?: number) {
+		if (this.melted) return;
+
 		deltaTime ??= this.deltaTime;
 
 		if (this.signalFissionRate !== null) {
@@ -155,6 +198,45 @@ export class Reactor {
 				rod.durability -= (this.fissionRate / 100) * this.fuelConsumptionRate * deltaTime;
 				if (rod.durability < 0) rod.durability = 0;
 			}
+		}
+
+		this.updateFaliures(deltaTime);
+	}
+
+	private meltDown() {
+		this.melted = true;
+		this.reactorHealth = 0;
+		this.fireTimer = 0;
+		this.meltDownTimer = 0;
+		for (const rod of this.rods) {
+			if (rod === null) continue;
+			rod.durability = 0;
+		}
+	}
+
+	private updateFaliures(deltaTime: number) {
+		if (this.GetTemperatureCritical()) {
+			this.meltDownTimer += Lerp(deltaTime * 2, deltaTime, this.reactorHealth / this.reactorMaxHealth);
+			if (this.meltDownTimer > this.meltDownDelay) {
+				this.meltDown();
+				return;
+			}
+		} else {
+			this.meltDownTimer = Math.max(0, this.meltDownTimer - deltaTime);
+		}
+
+		if (this.onFire === 0) {
+			if (this.GetTemperatureHot()) {
+				this.fireTimer += Lerp(deltaTime * 2, deltaTime, this.reactorHealth / this.reactorMaxHealth);
+				if (this.fireTimer >= this.fireDelay) {
+					this.onFire = 1;
+					this.fireTimer = 0;
+				}
+			} else this.fireTimer = Math.max(0, this.fireTimer - deltaTime);
+		} else {
+			this.reactorHealth -= deltaTime * 10;
+			if (this.reactorHealth <= 0) this.meltDown();
+			this.onFire++;
 		}
 	}
 

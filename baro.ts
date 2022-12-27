@@ -43,7 +43,8 @@ const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
 	return [turbineRate, fissionRate];
 };
 
-const simSeconds = 10;
+const simSeconds = 50;
+const realTime = false;
 
 let tick = 0;
 const mainLoop = () => {
@@ -51,26 +52,39 @@ const mainLoop = () => {
 	const [turbineRate, fissionRate] = reactorControllerTick();
 	reactor.tick();
 
-	console.clear();
-	console.log(`Power: ${reactor.GetPower().toFixed(2)} kW`);
-	console.log(`Fuel: ${reactor.GetFuel()}`);
-	console.log(`Temperature: ${reactor.GetTemperature().toFixed(2)}`);
-	console.log(`Load: ${reactor.GetLoad()} kW`);
+	const melted = reactor.GetMelted();
+	const onFire = reactor.GetOnFire();
 
-	console.log();
-	console.log(`[Turbine] - Real: ${reactor.GetHiddenTurbineOutput().toFixed(2)}, Set: ${turbineRate.toFixed(2)}`);
-	console.log(`[Fission] - Real: ${reactor.GetHiddenFissionRate().toFixed(2)}, Set: ${fissionRate.toFixed(2)}`);
-	console.log();
+	if (realTime || (!realTime && tick === tickRate * simSeconds) || melted) {
+		console.clear();
+		console.log(`Power: ${reactor.GetPower().toFixed(2)} kW`);
+		console.log(`Fuel: ${reactor.GetFuel()}`);
+		console.log(`Temperature: ${(reactor.GetTemperature() / 100).toFixed(2)}%`);
+		console.log(`Load: ${reactor.GetLoad()} kW`);
 
-	console.log();
-	console.log(`Rods:${reactor.GetRods().map((rod) => ` ${rod?.durability.toFixed(2)}%`)}`);
-	console.log(`Temperature Critical: ${reactor.GetTemperatureCritical()}`);
-	console.log();
+		console.log();
+		console.log(`[Turbine] - Real: ${reactor.GetHiddenTurbineOutput().toFixed(2)}, Set: ${turbineRate.toFixed(2)}`);
+		console.log(`[Fission] - Real: ${reactor.GetHiddenFissionRate().toFixed(2)}, Set: ${fissionRate.toFixed(2)}`);
+		console.log();
 
-	console.log(`Tick: ${tick}, Sec: ${tick / tickRate}`);
+		console.log();
+		console.log(`Rods:${reactor.GetRods().map((rod) => ` ${rod?.durability.toFixed(2)}%`)}`);
+		console.log(`Temperature Critical: ${reactor.GetTemperatureCritical()}`);
+		console.log(`Temperature Hot: ${reactor.GetTemperatureHot()}`);
+		console.log();
+		console.log(`On Fire: ${reactor.GetOnFire() / tickRate}s`);
+		console.log(`Melted: ${reactor.GetMelted()}`);
+		console.log(`Health: ${reactor.GetHealth()}%`);
+		console.log();
 
-	if (simSeconds > 0) {
-		if (tick >= tickRate * simSeconds) return;
+		console.log(`Tick: ${tick}, Sec: ${tick / tickRate}`);
+	}
+
+	if (melted) return;
+
+	if (tick >= tickRate * simSeconds) return;
+
+	if (!realTime) {
 		mainLoop();
 		return;
 	}
