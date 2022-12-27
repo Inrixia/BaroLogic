@@ -22,13 +22,13 @@ const rE = 75;
 let rF = 0;
 
 import { promisify } from "util";
-import { Reactor, Rods } from "./Reactor";
+import { Reactor, Rod, Rods, Quality } from "./Reactor";
 const sleep = promisify(setTimeout);
 
 const tickRate = 20;
 const reactor = new Reactor({
 	rMax: 5200,
-	rods: [Rods.Normal, Rods.Normal, Rods.Normal, Rods.Normal],
+	rods: [Rod(Rods.Normal, Quality.Masterwork), Rod(Rods.Normal, Quality.Masterwork), Rod(Rods.Normal, Quality.Masterwork), Rod(Rods.Normal, Quality.Masterwork)],
 	tickRate,
 });
 
@@ -43,22 +43,22 @@ const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
 	return [turbineRate, fissionRate];
 };
 
-const simSeconds = 50;
+const simSeconds = 4 * 60 + 22;
 const realTime = false;
 
 let tick = 0;
-const mainLoop = () => {
+while (tick <= tickRate * simSeconds) {
 	tick++;
 	const [turbineRate, fissionRate] = reactorControllerTick();
 	reactor.tick();
 
 	const melted = reactor.GetMelted();
-	const onFire = reactor.GetOnFire();
 
-	if (realTime || (!realTime && tick === tickRate * simSeconds) || melted) {
+	if (realTime || (!realTime && tick >= tickRate * simSeconds) || melted) {
 		console.clear();
 		console.log(`Power: ${reactor.GetPower().toFixed(2)} kW`);
 		console.log(`Fuel: ${reactor.GetFuel()}`);
+		console.log(`Fuel Percentage Left: ${reactor.GetFuelPercentageLeft().toFixed(2)}%`);
 		console.log(`Temperature: ${(reactor.GetTemperature() / 100).toFixed(2)}%`);
 		console.log(`Load: ${reactor.GetLoad()} kW`);
 
@@ -68,7 +68,12 @@ const mainLoop = () => {
 		console.log();
 
 		console.log();
-		console.log(`Rods:${reactor.GetRods().map((rod) => ` ${rod?.durability.toFixed(2)}%`)}`);
+		console.log(
+			`Rods:${reactor.GetRods().map((rod) => {
+				if (rod === null) return ` null`;
+				return ` ${((rod.durability / rod.maxDurability) * 100).toFixed(2)}%`;
+			})}`
+		);
 		console.log(`Temperature Critical: ${reactor.GetTemperatureCritical()}`);
 		console.log(`Temperature Hot: ${reactor.GetTemperatureHot()}`);
 		console.log();
@@ -80,14 +85,7 @@ const mainLoop = () => {
 		console.log(`Tick: ${tick}, Sec: ${tick / tickRate}`);
 	}
 
-	if (melted) return;
+	if (melted) break;
 
-	if (tick >= tickRate * simSeconds) return;
-
-	if (!realTime) {
-		mainLoop();
-		return;
-	}
-	sleep(1000 / tickRate).then(mainLoop);
-};
-mainLoop();
+	// sleep(1000 / tickRate).then(mainLoop);
+}

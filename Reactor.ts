@@ -1,26 +1,38 @@
-type FuelRod = {
-	durability: number;
-	heat: number;
-} | null;
+type FuelRod = (Rod & { quality: Quality }) | null;
 
 export const Rods = {
 	Normal: {
+		maxDurability: 100,
 		durability: 100,
 		heat: 80,
 	},
 	Thorium: {
+		maxDurability: 200,
 		durability: 200,
 		heat: 100,
 	},
 	Fulgurium: {
+		maxDurability: 150,
 		durability: 150,
 		heat: 150,
 	},
 	VolatileFulgurium: {
+		maxDurability: 400,
 		durability: 400,
 		heat: 150,
 	},
-} as const;
+};
+
+export enum Quality {
+	Normal = 1,
+	Good = 1.1,
+	Excellent = 1.2,
+	Masterwork = 1.3,
+}
+
+type Rod = typeof Rods[keyof typeof Rods];
+
+export const Rod = (rod: Rod, quality: Quality): FuelRod => ({ ...rod, quality });
 
 type Rods = [FuelRod, FuelRod, FuelRod, FuelRod];
 
@@ -121,6 +133,13 @@ export class Reactor {
 	public GetFuel() {
 		return this.fuelHeat;
 	}
+	public GetFuelPercentageLeft() {
+		return this.rods.reduce((durability, rod) => {
+			if (rod === null) return durability;
+			if (rod.durability !== 0) durability += rod.durability;
+			return durability;
+		}, 0);
+	}
 	public GetLoad() {
 		return this.load;
 	}
@@ -136,8 +155,8 @@ export class Reactor {
 		return this.temperature > allowedTemperature;
 	}
 	public GetTemperatureHot() {
-		const allowedTemperature = Lerp(30, 70, 0);
-		return this.temperature > allowedTemperature;
+		const optimalTemperature = Lerp(60, 70, 0);
+		return this.temperature > optimalTemperature;
 	}
 	private onFire: number = 0;
 	public GetOnFire() {
@@ -195,7 +214,7 @@ export class Reactor {
 		if (this.fissionRate > 0) {
 			for (const rod of this.rods) {
 				if (rod === null) continue;
-				rod.durability -= (this.fissionRate / 100) * this.fuelConsumptionRate * deltaTime;
+				rod.durability -= (this.fissionRate / 100) * (this.fuelConsumptionRate / rod.quality) * deltaTime;
 				if (rod.durability < 0) rod.durability = 0;
 			}
 		}
@@ -225,19 +244,13 @@ export class Reactor {
 			this.meltDownTimer = Math.max(0, this.meltDownTimer - deltaTime);
 		}
 
-		if (this.onFire === 0) {
-			if (this.GetTemperatureHot()) {
-				this.fireTimer += Lerp(deltaTime * 2, deltaTime, this.reactorHealth / this.reactorMaxHealth);
-				if (this.fireTimer >= this.fireDelay) {
-					this.onFire = 1;
-					this.fireTimer = 0;
-				}
-			} else this.fireTimer = Math.max(0, this.fireTimer - deltaTime);
-		} else {
-			this.reactorHealth -= deltaTime * 10;
-			if (this.reactorHealth <= 0) this.meltDown();
-			this.onFire++;
-		}
+		if (this.GetTemperatureHot()) {
+			this.fireTimer += Lerp(deltaTime * 2, deltaTime, this.reactorHealth / this.reactorMaxHealth);
+			if (this.fireTimer >= this.fireDelay) {
+				this.onFire = 1;
+				this.fireTimer = 0;
+			}
+		} else this.fireTimer = Math.max(0, this.fireTimer - deltaTime);
 	}
 
 	private get generatedHeat() {
