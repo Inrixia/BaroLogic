@@ -27,7 +27,6 @@ export class Powered extends Simulated implements PoweredInterface {
 	private powerConsumption: number = 0;
 
 	private _voltage: number = 0;
-
 	/**
 	 * Current voltage of the item (load / power)
 	 */

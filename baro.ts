@@ -24,6 +24,9 @@ let rF = 0;
 import { promisify } from "util";
 import { Reactor } from "./lib/classes/Reactor";
 import { Rod, Rods, Quality } from "./lib/classes/FuelRod";
+import { PowerContainer } from "./lib/classes/PowerContainer";
+import { Powered } from "./lib/classes/Powered";
+import { Simulated } from "./lib/classes/Simulated";
 const sleep = promisify(setTimeout);
 
 enum SimType {
@@ -71,10 +74,13 @@ const reactorLog = (turbineRate: number, fissionRate: number) => {
 let tick = 0;
 const sim = async (simType: SimType) => {
 	const maxTicks = tickRate * simSeconds;
+	const deltaTime = Simulated.DeltaTime(tickRate);
 	mainLoop: while (simType !== SimType.Timed || tick <= maxTicks) {
 		tick++;
 		const [turbineRate, fissionRate] = reactorControllerTick();
 		reactor.tick();
+
+		Powered.UpdatePower(deltaTime);
 
 		const melted = reactor._GetMelted();
 
@@ -121,7 +127,14 @@ const reactor = new Reactor({
 	autoTemp: false,
 });
 
-// reactor._SetLoad(5200);
+const battery = new PowerContainer({
+	tickRate: tickRate,
+	capacityMultiplier: 1,
+	capacity: 1000,
+	maxRechargeSpeed: 500,
+	exponentialRechargeSpeed: false,
+	maxOutPut: 500,
+});
 
 const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
 	const turbineRate = reactor.GetLoad() / (reactor.maxPowerOutput / 100);

@@ -2,7 +2,11 @@ export class Simulated {
 	protected deltaTime: number;
 
 	constructor(tickRate: number) {
-		this.deltaTime = 1 / tickRate;
+		this.deltaTime = Simulated.DeltaTime(tickRate);
+	}
+
+	static DeltaTime(tickRate: number) {
+		return 1 / tickRate;
 	}
 }
 

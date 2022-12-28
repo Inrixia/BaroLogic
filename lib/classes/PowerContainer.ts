@@ -7,6 +7,7 @@ type PowerContainerOpts = {
 	tickRate: number;
 	maxRechargeSpeed: number;
 	capacityMultiplier: number;
+	capacity: number;
 	exponentialRechargeSpeed: boolean;
 	maxOutPut: number;
 };
@@ -105,8 +106,10 @@ export class PowerContainer extends Powered implements SimulatedInterface, Power
 	constructor(opts: PowerContainerOpts) {
 		super(opts.tickRate);
 		this.capacityMultiplier = opts.capacityMultiplier;
-		this.maxRechargeSpeed = opts.maxRechargeSpeed;
+		this.capacity = opts.capacity;
+		this.rechargeSpeed = this.maxRechargeSpeed = opts.maxRechargeSpeed;
 		this.exponentialRechargeSpeed = opts.exponentialRechargeSpeed;
+		this.maxOutPut = opts.maxOutPut;
 
 		this.isActive = true;
 	}
@@ -138,7 +141,7 @@ export class PowerContainer extends Powered implements SimulatedInterface, Power
 	}
 	// END Signals
 
-	public GetPowerConsumption() {
+	public GetCurrentPowerConsumption() {
 		// Don't draw power if fully charged
 		if (this.charge >= this.adjustedCapacity) {
 			this.charge = this.adjustedCapacity;
