@@ -36,23 +36,23 @@ const reactor = new Reactor({
 	fireDelay: 20,
 	meltDownDelay: 120,
 	fuelConsumptionRate: 0.2,
-	playerDegreeOfSuccess: 0,
+	playerDegreeOfSuccess: 0.5,
 	powerOn: true,
 	autoTemp: false,
 });
 
 const battery = new PowerContainer({
 	capacityMultiplier: 1,
-	capacity: 2000,
+	capacity: 10000,
 	charge: 0,
-	maxRechargeSpeed: 500,
+	maxRechargeSpeed: 6000,
 	exponentialRechargeSpeed: false,
 	maxOutPut: 500,
 	efficiency: 0.95,
 });
 
 const reactorControllerTick = () => {
-	const turbineRate = reactor.GetLoadValueOut() / (reactor.maxPowerOutput / 100);
+	const turbineRate = Math.min(reactor.GetLoadValueOut(), reactor.maxPowerOutput) / (reactor.maxPowerOutput / 100);
 	reactor.SetTurbineOutput(turbineRate);
 	reactor.SetFissionRate(turbineRate / (reactor.GetFuelOut() / rE));
 };
@@ -77,14 +77,17 @@ Tick: ${tick}, Sec: ${time.toFixed(2)}s, DeltaTime: ${(deltaTime * 1000).toFixed
 const logic = () => {
 	reactorControllerTick();
 
-	if (battery.GetChargePrecentage() > 98) return SimStatus.RealTime;
+	if (reactor.melted) return SimStatus.Stopped;
+	const goRealtime = battery.GetChargePrecentage() > 99 || reactor.meltDownTimer > 115;
+	if (goRealtime) return SimStatus.RealTime;
 };
 
 new Simulator({
 	simulate: Powered.PoweredList,
 	logic,
 	log,
-	type: SimStatus.Endless,
+	type: SimStatus.RealTime,
 	tickRate: 20,
 	simTime: 128,
+	simSpeed: 2,
 }).start();

@@ -6,8 +6,8 @@ import { Reactor } from "./classes/Reactor";
 export const reactorText = (reactor: Reactor, tickRate: number) => `Power Value Out: ${reactor.GetPowerValueOut().toFixed(2)} kW
 Fuel Out: ${reactor.GetFuelOut()}
 Fuel Percentage Left: ${reactor.GetFuelPercentageLeft().toFixed(2)}%
-Temperatur Out: ${(reactor.GetTemperatureOut() / 100).toFixed(2)}%
-Load Value Out: ${reactor.GetLoadValueOut()} kW
+Temperature Out: ${(reactor.GetTemperatureOut() / 100).toFixed(2)}%
+Load Value Out: ${reactor.GetLoadValueOut().toFixed(2)} kW
 
 Need More Fuel: ${reactor.needMoreFuel}
 Too Much Fuel: ${reactor.tooMuchFuel}
@@ -21,12 +21,13 @@ Rods:${reactor.rods.map((rod) => {
 })}
 
 Temperature Critical: ${reactor.temperatureCritical}
-Temperature Hot: ${reactor.temperatureHot}
-Meltdown Delay: ${reactor.meltDownDelay.toFixed(2)}
-Fire Delay: ${reactor.fireDelay.toFixed(2)}
+Meltdown In: ${(reactor.meltDownDelay - reactor.meltDownTimer).toFixed(2)}s
 
+Temperature Hot: ${reactor.temperatureHot}
+Fire In: ${(reactor.fireDelay - reactor.fireTimer).toFixed(2)}s
 On Fire: ${reactor.onFire / tickRate}s
-Health: ${reactor.reactorHealth}%
+
+Health: ${reactor.reactorHealth.toFixed(2)}%
 
 Melted: ${reactor.melted}
 Is Powered On: ${reactor.powerOn}`;
@@ -41,5 +42,5 @@ Charge Rate: ${battery.GetChargeRate().toFixed(2)} %`;
 
 // Grid
 export const gridText = () => `Voltage: ${Powered.Grid.Voltage.toFixed(2)}v
-Load: ${Powered.Grid.Load} Kw
-Power: ${Powered.Grid.Power} Kw`;
+Load: ${Powered.Grid.Load.toFixed(2)} Kw
+Power: ${Powered.Grid.Power.toFixed(2)} Kw`;

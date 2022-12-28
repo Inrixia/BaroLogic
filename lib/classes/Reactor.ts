@@ -22,8 +22,21 @@ type ReactorOptions = {
 export class Reactor extends Powered {
 	private load: number = 0;
 
-	private meltDownTimer = 0;
-	private fireTimer = 0;
+	private _meltDownTimer = 0;
+	private set meltDownTimer(timer: number) {
+		this._meltDownTimer = timer;
+	}
+	public get meltDownTimer(): number {
+		return this._meltDownTimer;
+	}
+
+	private _fireTimer = 0;
+	private set fireTimer(timer: number) {
+		this._fireTimer = timer;
+	}
+	public get fireTimer(): number {
+		return this._fireTimer;
+	}
 
 	public powerOn: boolean;
 	public autoTemp: boolean;
@@ -380,13 +393,13 @@ export class Reactor extends Powered {
 
 	private meltDown() {
 		this.melted = true;
-		this.reactorHealth = 0;
-		this.fireTimer = 0;
-		this.meltDownTimer = 0;
-		for (const rod of this.rods) {
-			if (rod === null) continue;
-			rod.durability = 0;
-		}
+		// this.reactorHealth = 0;
+		// this.fireTimer = 0;
+		// this.meltDownTimer = 0;
+		// for (const rod of this.rods) {
+		// 	if (rod === null) continue;
+		// 	rod.durability = 0;
+		// }
 	}
 
 	private updateFaliures(deltaTime: number) {
@@ -403,8 +416,9 @@ export class Reactor extends Powered {
 		if (this.temperatureHot) {
 			this.fireTimer += Lerp(deltaTime * 2, deltaTime, this.reactorHealth / this.reactorMaxHealth);
 			if (this.fireTimer >= this.fireDelay) {
-				this.onFire = 1;
-				this.fireTimer = 0;
+				this.onFire += 1;
+				this.fireTimer = this.fireDelay;
+				this.reactorHealth -= deltaTime;
 			}
 		} else this.fireTimer = Math.max(0, this.fireTimer - deltaTime);
 	}

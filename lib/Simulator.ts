@@ -24,6 +24,7 @@ type SimulatorOpts = {
 	type: SimStatus;
 	tickRate: number;
 	simTime: number;
+	simSpeed: number;
 };
 
 export class Simulator {
@@ -32,8 +33,10 @@ export class Simulator {
 	private logic: Exclude<SimulatorOpts["logic"], undefined>;
 	private log: Exclude<SimulatorOpts["log"], undefined>;
 
-	tickRate: SimulatorOpts["tickRate"];
-	simTime: SimulatorOpts["simTime"];
+	private tickRate: SimulatorOpts["tickRate"];
+	private simTime: SimulatorOpts["simTime"];
+
+	private simSpeed: SimulatorOpts["simSpeed"];
 
 	constructor(opts: SimulatorOpts) {
 		this.simulate = opts.simulate;
@@ -43,6 +46,7 @@ export class Simulator {
 
 		this.tickRate = opts.tickRate;
 		this.simTime = opts.simTime;
+		this.simSpeed = opts.simSpeed;
 	}
 
 	private hrS(time?: [number, number]) {
@@ -62,8 +66,8 @@ export class Simulator {
 		const maxTicks = this.simTime * this.tickRate;
 		mainLoop: while (true) {
 			if (this.status === SimStatus.RealTime) {
-				if (this.hrS(lastTick) < targetDelta) continue;
-				deltaTime = this.hrS(lastTick);
+				if (this.hrS(lastTick) < targetDelta / this.simSpeed) continue;
+				deltaTime = this.hrS(lastTick) * this.simSpeed;
 				lastTick = process.hrtime();
 			} else deltaTime = staticDeltaTime;
 			tick++;
@@ -90,6 +94,7 @@ export class Simulator {
 					break;
 				}
 				case SimStatus.Stopped: {
+					this.log(simInfo);
 					break mainLoop;
 				}
 			}
