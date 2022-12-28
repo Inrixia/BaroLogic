@@ -1,26 +1,3 @@
-// Num Batteries [1-n]
-let bN = 0;
-// Battery Charge Rate (KW)
-let bC = 0;
-// Battery Charge Rage (%)
-let bR = 0;
-
-// Main Load (KW)
-let lM = 0;
-// Load Multiplier [1-2]
-let lP = 1;
-// Relative Load (KW)
-let lR = 0;
-// Multiplied Relative Load (KW)
-let lX = 0;
-
-// Reactor Max Output (KW) [5200]
-const rMAX = 5200;
-// Reactor Fuel Efficiency [65-100]
-const rE = 75;
-// Reactor Fuel
-let rF = 0;
-
 import { Reactor } from "./lib/classes/Reactor";
 import { Rod, Rods, Quality } from "./lib/classes/FuelRod";
 import { PowerContainer } from "./lib/classes/PowerContainer";
@@ -51,16 +28,27 @@ const battery = new PowerContainer({
 	efficiency: 0.95,
 });
 
+let efficiency = 75;
+let load = 0;
 const reactorControllerTick = () => {
-	const turbineRate = Math.min(reactor.GetLoadValueOut(), reactor.maxPowerOutput) / (reactor.maxPowerOutput / 100);
+	load = Math.min(reactor.GetLoadValueOut(), reactor.maxPowerOutput);
+	const power = reactor.GetPowerValueOut();
+	if (power >= load + 10) efficiency -= 0.1;
+	// if (power <= load) efficiency += 0.1;
+
+	const turbineRate = load / (reactor.maxPowerOutput / 100);
 	reactor.SetTurbineOutput(turbineRate);
-	reactor.SetFissionRate(turbineRate / (reactor.GetFuelOut() / rE));
+	reactor.SetFissionRate(turbineRate / (reactor.GetFuelOut() / efficiency));
 };
 
 const log = ({ tick, time, tickRate, deltaTime }: SimInfo) => {
 	console.clear();
 	const txt = `[== REACTOR ==]
 ${reactorText(reactor, tickRate)}
+
+[== ARC ==]
+Efficiency: ${efficiency.toFixed(2)}%
+Load: ${load.toFixed(2)} kW
 
 [== BATTERY ==]
 ${batteryText(battery)}

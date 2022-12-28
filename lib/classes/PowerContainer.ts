@@ -65,31 +65,27 @@ export class PowerContainer extends Powered {
 		this._charge = Clamp(charge, 0, this.adjustedCapacity);
 	}
 
-	private get chargePercentage() {
-		return (this.charge / this.adjustedCapacity) * 100;
-	}
-
 	private _maxRechargeSpeed: number = 0;
 	/**
 	 * How fast the device can be recharged. For example, a recharge speed of 100 kW and a capacity of 1000 kW*min would mean it takes 10 minutes to fully charge the device.
 	 */
-	private get maxRechargeSpeed() {
-		return this._maxRechargeSpeed;
-	}
 	private set maxRechargeSpeed(maxSpeed: number) {
 		this._maxRechargeSpeed = Math.max(maxSpeed, 1);
+	}
+	public get maxRechargeSpeed() {
+		return this._maxRechargeSpeed;
 	}
 
 	private _rechargeSpeed: number = 0;
 	/**
 	 * The current recharge speed of the device.
 	 */
-	private get rechargeSpeed() {
-		return this._rechargeSpeed;
-	}
 	private set rechargeSpeed(speed: number) {
 		this._rechargeSpeed = Clamp(speed, 0, this.maxRechargeSpeed);
 		this._rechargeSpeed = RoundTowardsClosest(this._rechargeSpeed, Math.max(this.maxRechargeSpeed * 0.1, 1));
+	}
+	public get rechargeSpeed() {
+		return this._rechargeSpeed;
 	}
 
 	private _efficiency: number = 0;
@@ -158,6 +154,10 @@ export class PowerContainer extends Powered {
 
 			return Clamp(targetRechargeSpeed, 0, this.maxRechargeSpeed);
 		}
+	}
+
+	public getRealChargeSpeed() {
+		return this.currPowerConsumption * this.voltage * this.efficiency;
 	}
 
 	public GridResolved(deltaTime: number) {

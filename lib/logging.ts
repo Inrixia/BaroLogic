@@ -7,7 +7,6 @@ export const reactorText = (reactor: Reactor, tickRate: number) => `Power Value 
 Fuel Out: ${reactor.GetFuelOut()}
 Fuel Percentage Left: ${reactor.GetFuelPercentageLeft().toFixed(2)}%
 Temperature Out: ${(reactor.GetTemperatureOut() / 100).toFixed(2)}%
-Load Value Out: ${reactor.GetLoadValueOut().toFixed(2)} kW
 
 Need More Fuel: ${reactor.needMoreFuel}
 Too Much Fuel: ${reactor.tooMuchFuel}
@@ -34,11 +33,11 @@ Is Powered On: ${reactor.powerOn}`;
 
 // Battery
 export const batteryText = (battery: PowerContainer) => `Power Value Out: ${battery.GetPowerValueOut().toFixed(2)} kW
-Load Value Out: ${battery.GetLoadValueOut().toFixed(2)} kW
 Charge: ${battery.GetCharge().toFixed(2)} kWmin
 Charge %: ${battery.GetChargePrecentage().toFixed(2)}%
-Load Value Out: ${battery.GetLoadValueOut().toFixed(2)} kW
-Charge Rate: ${battery.GetChargeRate().toFixed(2)} %`;
+Charge Rate: ${battery.GetChargeRate().toFixed(2)} %
+
+Real Charge Speed: ${battery.getRealChargeSpeed().toFixed(2)} kW`;
 
 // Grid
 export const gridText = () => `Voltage: ${Powered.Grid.Voltage.toFixed(2)}v
