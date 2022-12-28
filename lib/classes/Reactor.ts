@@ -33,7 +33,7 @@ export class Reactor extends Powered {
 	private optimalFissionRate: Vector2 = new Vector2(0, 0);
 	private allowedFissionRate: Vector2 = new Vector2(0, 0);
 	private optimalTurbineOutput: Vector2 = new Vector2(0, 0);
-	private allowedTurbineOutput: Vector2 = new Vector2(0, 0);
+	// private allowedTurbineOutput: Vector2 = new Vector2(0, 0);
 
 	private maxUpdatePowerOut: number = 0;
 	private minUpdatePowerOut: number = 0;
@@ -58,7 +58,7 @@ export class Reactor extends Powered {
 	private set temperature(temp: number) {
 		this._temperature = Clamp(temp, 0, 100);
 	}
-	private get temperature() {
+	public get temperature() {
 		return this._temperature;
 	}
 
@@ -69,7 +69,7 @@ export class Reactor extends Powered {
 	private set fissionRate(rate: number) {
 		this._fissionRate = Clamp(rate, 0, 100);
 	}
-	private get fissionRate() {
+	public get fissionRate() {
 		return this._fissionRate;
 	}
 
@@ -80,7 +80,7 @@ export class Reactor extends Powered {
 	private set turbineOutput(output: number) {
 		this._turbineOutput = Clamp(output, 0, 100);
 	}
-	private get turbineOutput() {
+	public get turbineOutput() {
 		return this._turbineOutput;
 	}
 
@@ -91,7 +91,7 @@ export class Reactor extends Powered {
 	private set fuelConsumptionRate(rate: number) {
 		this._fuelConsumptionRate = Math.max(0, rate);
 	}
-	private get fuelConsumptionRate() {
+	public get fuelConsumptionRate() {
 		return this._fuelConsumptionRate;
 	}
 
@@ -102,7 +102,7 @@ export class Reactor extends Powered {
 	private set meltDownDelay(delay: number) {
 		this._meltDownDelay = Math.max(0, delay);
 	}
-	private get meltDownDelay() {
+	public get meltDownDelay() {
 		return this._meltDownDelay;
 	}
 
@@ -113,7 +113,7 @@ export class Reactor extends Powered {
 	private set fireDelay(delay: number) {
 		this._fireDelay = Math.max(0, delay);
 	}
-	private get fireDelay() {
+	public get fireDelay() {
 		return this._fireDelay;
 	}
 
@@ -134,8 +134,29 @@ export class Reactor extends Powered {
 		return this._degreeOfSuccess;
 	}
 
-	private rods: Rods;
-	private reactorHealth: number;
+	private _rods: Rods = [null, null, null, null];
+	/**
+	 * Reactor fuel rods.
+	 * Default: [null, null, null, null]
+	 */
+	private set rods(rods: Rods) {
+		this._rods = rods;
+	}
+	public get rods() {
+		return this._rods;
+	}
+
+	private _reactorHealth: number = 100;
+	/**
+	 * Reactor health 0-100
+	 */
+	private set reactorHealth(health: number) {
+		this._reactorHealth = Math.max(0, health);
+	}
+	public get reactorHealth() {
+		return this._reactorHealth;
+	}
+
 	private readonly reactorMaxHealth: number;
 
 	constructor(opts: ReactorOptions) {
@@ -154,7 +175,7 @@ export class Reactor extends Powered {
 		this.isActive = true;
 	}
 
-	private get fuelHeat() {
+	public get fuelHeat() {
 		return this.rods.reduce((heatValue, rod) => {
 			if (rod === null) return heatValue;
 			if (rod.durability !== 0) heatValue += rod.heat;
@@ -163,14 +184,14 @@ export class Reactor extends Powered {
 	}
 
 	// BEGIN Signals
-	public GetTemperature() {
+	public GetTemperatureOut() {
 		return this.temperature * 100;
 	}
-	public GetPower() {
+	public GetPowerValueOut() {
 		const temperatureFactor = Math.min(this.temperature / 50, 1);
 		return this.maxPowerOutput * Math.min(this.turbineOutput / 100, temperatureFactor);
 	}
-	public GetFuel() {
+	public GetFuelOut() {
 		return this.fuelHeat;
 	}
 	public GetFuelPercentageLeft() {
@@ -180,7 +201,7 @@ export class Reactor extends Powered {
 			return durability;
 		}, 0);
 	}
-	public GetLoad() {
+	public GetLoadValueOut() {
 		return this.load;
 	}
 
@@ -200,40 +221,38 @@ export class Reactor extends Powered {
 	/**
 	 * Is the temperature currently critical. Intended to be used by StatusEffect conditionals (setting the value from XML has no effect).
 	 */
-	public _GetTemperatureCritical() {
+	public get temperatureCritical() {
 		return this.temperature > this.allowedTemperature.Y;
 	}
-	public _GetTemperatureHot() {
+	public get temperatureHot() {
 		return this.temperature > this.optimalTemperature.Y;
 	}
-	public _GetRods() {
-		return [...this.rods];
+	private _onFire: number = 0;
+	/**
+	 * Ticks the reactor has been on fire
+	 */
+	private set onFire(onFire: number) {
+		this._onFire = onFire;
 	}
-	public _GetMaxPowerOutput() {
-		return this.maxPowerOutput;
-	}
-	private onFire: number = 0;
-	public _GetOnFire() {
-		return this.onFire;
-	}
-	private melted: boolean = false;
-	public _GetMelted() {
-		return this.melted;
-	}
-	public _GetHealth() {
-		return this.reactorHealth;
+	public get onFire() {
+		return this._onFire;
 	}
 
-	public _GetFissionRate() {
-		return this.fissionRate;
+	private _melted: boolean = false;
+	/**
+	 * true if reactor has melted down.
+	 */
+	private set melted(melted: boolean) {
+		this._melted = melted;
 	}
-	public _GetTurbineOutput() {
-		return this.turbineOutput;
+	public get melted() {
+		return this._melted;
 	}
+
 	/**
 	 * @param minimumOutputRatio How low we allow the output/load ratio to go before loading more fuel. 1.0 = always load more fuel when maximum output is too low, 0.5 = load more if max output is 50% of the load
 	 */
-	public _GetNeedMoreFuel(minimumOutputRatio = 0.5, minCondition = 0): boolean {
+	private GetNeedMoreFuel(minimumOutputRatio = 0.5, minCondition = 0): boolean {
 		if (this.GetFuelPercentageLeft() <= minCondition && this.load > 0) {
 			return true;
 		}
@@ -254,8 +273,11 @@ export class Reactor extends Powered {
 		// maximum output not enough, we need more fuel
 		return theoreticalMaxOutput < this.load * minimumOutputRatio;
 	}
+	public get needMoreFuel() {
+		return this.GetNeedMoreFuel();
+	}
 
-	public _GetTooMuchFuel(): boolean {
+	private GetTooMuchFuel(): boolean {
 		if (this.GetFuelPercentageLeft() <= 0) return false;
 
 		// get the amount of heat we'd generate if the fission rate was at the low end of the optimal range
@@ -263,6 +285,9 @@ export class Reactor extends Powered {
 
 		// if we need a very high turbine output to keep the engine from overheating, there's too much fuel
 		return minimumHeat > Math.min(this.correctTurbineOutput * 1.5, 90);
+	}
+	public get tooMuchFuel() {
+		return this.GetTooMuchFuel();
 	}
 
 	private targetFissionRate: number = 0;
@@ -297,16 +322,16 @@ export class Reactor extends Powered {
 			this.targetTurbineOutput = adjustValueWithoutOverShooting(this.targetTurbineOutput, this.signalTurbineOutput, deltaTime * 5);
 		}
 
+		if (!this.powerOn) {
+			this.targetFissionRate = 0;
+			this.targetTurbineOutput = 0;
+		} else if (this.autoTemp) this.UpdateAutoTemp(2, deltaTime);
+
 		const temperatureDiff = this.GetGeneratedHeat(this.fissionRate) - this.turbineOutput - this.temperature;
 		this.temperature += Clamp(Math.sign(temperatureDiff) * 10 * deltaTime, -Math.abs(temperatureDiff), Math.abs(temperatureDiff));
 
 		this.fissionRate = Lerp(this.fissionRate, Math.min(this.targetFissionRate, this.fuelHeat), deltaTime);
 		this.turbineOutput = Lerp(this.turbineOutput, this.targetTurbineOutput, deltaTime);
-
-		if (!this.powerOn) {
-			this.targetFissionRate = 0;
-			this.targetTurbineOutput = 0;
-		} else if (this.autoTemp) this.UpdateAutoTemp(2, deltaTime);
 
 		if (this.fissionRate > 0) {
 			for (const rod of this.rods) {
@@ -352,7 +377,7 @@ export class Reactor extends Powered {
 	}
 
 	private updateFaliures(deltaTime: number) {
-		if (this._GetTemperatureCritical()) {
+		if (this.temperatureCritical) {
 			this.meltDownTimer += Lerp(deltaTime * 2, deltaTime, this.reactorHealth / this.reactorMaxHealth);
 			if (this.meltDownTimer > this.meltDownDelay) {
 				this.meltDown();
@@ -362,7 +387,7 @@ export class Reactor extends Powered {
 			this.meltDownTimer = Math.max(0, this.meltDownTimer - deltaTime);
 		}
 
-		if (this._GetTemperatureHot()) {
+		if (this.temperatureHot) {
 			this.fireTimer += Lerp(deltaTime * 2, deltaTime, this.reactorHealth / this.reactorMaxHealth);
 			if (this.fireTimer >= this.fireDelay) {
 				this.onFire = 1;

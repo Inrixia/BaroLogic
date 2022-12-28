@@ -8,6 +8,7 @@ type PowerContainerOpts = {
 	capacity: number;
 	exponentialRechargeSpeed: boolean;
 	maxOutPut: number;
+	efficiency: number;
 };
 
 export class PowerContainer extends Powered {
@@ -108,6 +109,7 @@ export class PowerContainer extends Powered {
 		this.rechargeSpeed = this.maxRechargeSpeed = opts.maxRechargeSpeed;
 		this.exponentialRechargeSpeed = opts.exponentialRechargeSpeed;
 		this.maxOutPut = opts.maxOutPut;
+		this.efficiency = opts.efficiency;
 
 		this.isActive = true;
 	}
@@ -122,7 +124,7 @@ export class PowerContainer extends Powered {
 	public GetCharge(): number {
 		return this.charge;
 	}
-	public GetChargePrecent(): number {
+	public GetChargePrecentage(): number {
 		return (this.charge / this.adjustedCapacity) * 100;
 	}
 	public GetChargeRate(): number {

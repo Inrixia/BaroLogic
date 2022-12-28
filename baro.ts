@@ -38,7 +38,7 @@ const reactor = new Reactor({
 	meltDownDelay: 120,
 	fuelConsumptionRate: 0.2,
 	playerDegreeOfSuccess: 0,
-	powerOn: false,
+	powerOn: true,
 	autoTemp: false,
 });
 
@@ -48,12 +48,13 @@ const battery = new PowerContainer({
 	maxRechargeSpeed: 500,
 	exponentialRechargeSpeed: false,
 	maxOutPut: 500,
+	efficiency: 0.95,
 });
 
 const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
-	const turbineRate = reactor.GetLoad() / (reactor.maxPowerOutput / 100);
+	const turbineRate = reactor.GetLoadValueOut() / (reactor.maxPowerOutput / 100);
 	reactor.SetTurbineOutput(turbineRate);
-	const fissionRate = turbineRate / (reactor.GetFuel() / rE);
+	const fissionRate = turbineRate / (reactor.GetFuelOut() / rE);
 	reactor.SetFissionRate(fissionRate);
 
 	return [turbineRate, fissionRate];
@@ -61,38 +62,46 @@ const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
 
 const logStatus = (tick: number, [turbineRate, fissionRate]: [number, number]) => {
 	console.clear();
-	console.log(`Power: ${reactor.GetPower().toFixed(2)} kW`);
-	console.log(`Fuel: ${reactor.GetFuel()}`);
-	console.log(`Fuel Percentage Left: ${reactor.GetFuelPercentageLeft().toFixed(2)}%`);
-	console.log(`Temperature: ${(reactor.GetTemperature() / 100).toFixed(2)}%`);
-	console.log(`Load: ${reactor.GetLoad()} kW`);
+	const txt = `[== REACTOR ==]
+Power Value Out: ${reactor.GetPowerValueOut().toFixed(2)} kW
+Fuel Out: ${reactor.GetFuelOut()}
+Fuel Percentage Left: ${reactor.GetFuelPercentageLeft().toFixed(2)}%
+Temperatur Out: ${(reactor.GetTemperatureOut() / 100).toFixed(2)}%
+Load Value Out: ${reactor.GetLoadValueOut()} kW
 
-	console.log();
-	console.log(`Need More Fuel: ${reactor._GetNeedMoreFuel()}`);
-	console.log(`Too Much Fuel: ${reactor._GetTooMuchFuel()}`);
-	console.log();
+Need More Fuel: ${reactor.needMoreFuel}
+Too Much Fuel: ${reactor.tooMuchFuel}
 
-	console.log();
-	console.log(`[Turbine] - Real: ${reactor._GetTurbineOutput().toFixed(2)}, Set: ${turbineRate.toFixed(2)}`);
-	console.log(`[Fission] - Real: ${reactor._GetFissionRate().toFixed(2)}, Set: ${fissionRate.toFixed(2)}`);
-	console.log();
+[Turbine] - Real: ${reactor.turbineOutput.toFixed(2)}, Set: ${turbineRate.toFixed(2)}
+[Fission] - Real: ${reactor.fissionRate.toFixed(2)}, Set: ${fissionRate.toFixed(2)}
 
-	console.log();
-	console.log(
-		`Rods:${reactor._GetRods().map((rod) => {
-			if (rod === null) return ` null`;
-			return ` ${((rod.durability / rod.maxDurability) * 100).toFixed(2)}%`;
-		})}`
-	);
-	console.log(`Temperature Critical: ${reactor._GetTemperatureCritical()}`);
-	console.log(`Temperature Hot: ${reactor._GetTemperatureHot()}`);
-	console.log();
-	console.log(`On Fire: ${reactor._GetOnFire() / tickRate}s`);
-	console.log(`Melted: ${reactor._GetMelted()}`);
-	console.log(`Health: ${reactor._GetHealth()}%`);
-	console.log();
+Rods:${reactor.rods.map((rod) => {
+		if (rod === null) return ` null`;
+		return ` ${((rod.durability / rod.maxDurability) * 100).toFixed(2)}%`;
+	})}
 
-	console.log(`Tick: ${tick}, Sec: ${tick / tickRate}`);
+Temperature Critical: ${reactor.temperatureCritical}
+Temperature Hot: ${reactor.temperatureHot}
+Meltdown Delay: ${reactor.meltDownDelay.toFixed(2)}
+Fire Delay: ${reactor.fireDelay.toFixed(2)}
+
+On Fire: ${reactor.onFire / tickRate}s
+Health: ${reactor.reactorHealth}%
+
+Melted: ${reactor.melted}
+Is Powered On: ${reactor.powerOn}
+
+[== BATTERY ==]
+Power Value Out: ${battery.GetPowerValueOut().toFixed(2)} kW
+Load Value Out: ${battery.GetLoadValueOut().toFixed(2)} kW
+Charge: ${battery.GetCharge().toFixed(2)} kW
+Charge %: ${battery.GetChargePrecentage().toFixed(2)}%
+Load Value Out: ${battery.GetLoadValueOut().toFixed(2)} kW
+Charge Rate: ${battery.GetChargeRate().toFixed(2)} %
+
+Tick: ${tick}, Sec: ${tick / tickRate}`;
+
+	console.log(txt);
 };
 
 const logic = (tick: number) => {
