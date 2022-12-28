@@ -2,14 +2,7 @@ import { Grid, PowerPriority, PowerRange } from "./Power";
 import { Simulated } from "./Simulated";
 import { Timing } from "./Timing";
 
-export interface PoweredInterface {
-	GetCurrentPowerConsumption: () => number;
-	GetPowerOut: (power: number, load: number, minMaxPower: PowerRange) => number;
-	MinMaxPowerOut: (load: number) => PowerRange;
-	GridResolved: () => void;
-}
-
-export class Powered extends Simulated implements PoweredInterface {
+export class Powered extends Simulated {
 	protected updateInterval = Timing.Step;
 	/**
 	 * The amount of power currently consumed by the item. Negative values mean that the item is providing power to connected items
@@ -70,11 +63,11 @@ export class Powered extends Simulated implements PoweredInterface {
 	/**
 	 * List of all powered ItemComponents
 	 */
-	private static readonly PoweredList: Powered[] = [];
+	public static readonly PoweredList: Powered[] = [];
 	protected static readonly Grid: Grid = new Grid();
 
-	constructor(tickRate: number, powerPriority: PowerPriority = PowerPriority.Default) {
-		super(tickRate);
+	constructor(powerPriority: PowerPriority = PowerPriority.Default) {
+		super();
 		this.powerPriority = powerPriority;
 		Powered.PoweredList.push(this);
 		Powered.PoweredList.sort((a, b) => b.powerPriority - a.powerPriority);

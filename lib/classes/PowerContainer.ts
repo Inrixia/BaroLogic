@@ -1,10 +1,8 @@
 import { Clamp, RoundTowardsClosest } from "../math";
 import { PowerPriority, PowerRange } from "./Power";
-import { PoweredInterface, Powered } from "./Powered";
-import { SimulatedInterface } from "./Simulated";
+import { Powered } from "./Powered";
 
 type PowerContainerOpts = {
-	tickRate: number;
 	maxRechargeSpeed: number;
 	capacityMultiplier: number;
 	capacity: number;
@@ -12,7 +10,7 @@ type PowerContainerOpts = {
 	maxOutPut: number;
 };
 
-export class PowerContainer extends Powered implements SimulatedInterface, PoweredInterface {
+export class PowerContainer extends Powered {
 	/**
 	 * Maximum output of the device when fully charged (kW).
 	 */
@@ -104,7 +102,7 @@ export class PowerContainer extends Powered implements SimulatedInterface, Power
 	}
 
 	constructor(opts: PowerContainerOpts) {
-		super(opts.tickRate);
+		super(PowerPriority.Battery);
 		this.capacityMultiplier = opts.capacityMultiplier;
 		this.capacity = opts.capacity;
 		this.rechargeSpeed = this.maxRechargeSpeed = opts.maxRechargeSpeed;
@@ -112,10 +110,6 @@ export class PowerContainer extends Powered implements SimulatedInterface, Power
 		this.maxOutPut = opts.maxOutPut;
 
 		this.isActive = true;
-	}
-
-	public tick(deltaTime?: number) {
-		deltaTime ??= this.deltaTime;
 	}
 
 	// BEGIN Signals

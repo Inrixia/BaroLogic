@@ -21,21 +21,45 @@ const rE = 75;
 // Reactor Fuel
 let rF = 0;
 
-import { promisify } from "util";
 import { Reactor } from "./lib/classes/Reactor";
 import { Rod, Rods, Quality } from "./lib/classes/FuelRod";
 import { PowerContainer } from "./lib/classes/PowerContainer";
+import { SimType, Simulator } from "./lib/Simulator";
 import { Powered } from "./lib/classes/Powered";
-import { Simulated } from "./lib/classes/Simulated";
-const sleep = promisify(setTimeout);
 
-enum SimType {
-	RealTime,
-	Timed,
-	Endless,
-}
+const simSeconds = 4 * 60;
+const tickRate = 20;
+const reactor = new Reactor({
+	maxPowerOutput: 5200,
+	maxPowerOutputMultiplier: 1,
+	rods: [Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal)],
+	reactorMaxHealth: 100,
+	fireDelay: 20,
+	meltDownDelay: 120,
+	fuelConsumptionRate: 0.2,
+	playerDegreeOfSuccess: 0,
+	powerOn: false,
+	autoTemp: false,
+});
 
-const reactorLog = (turbineRate: number, fissionRate: number) => {
+const battery = new PowerContainer({
+	capacityMultiplier: 1,
+	capacity: 1000,
+	maxRechargeSpeed: 500,
+	exponentialRechargeSpeed: false,
+	maxOutPut: 500,
+});
+
+const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
+	const turbineRate = reactor.GetLoad() / (reactor.maxPowerOutput / 100);
+	reactor.SetTurbineOutput(turbineRate);
+	const fissionRate = turbineRate / (reactor.GetFuel() / rE);
+	reactor.SetFissionRate(fissionRate);
+
+	return [turbineRate, fissionRate];
+};
+
+const logStatus = (tick: number, [turbineRate, fissionRate]: [number, number]) => {
 	console.clear();
 	console.log(`Power: ${reactor.GetPower().toFixed(2)} kW`);
 	console.log(`Fuel: ${reactor.GetFuel()}`);
@@ -71,78 +95,14 @@ const reactorLog = (turbineRate: number, fissionRate: number) => {
 	console.log(`Tick: ${tick}, Sec: ${tick / tickRate}`);
 };
 
-let tick = 0;
-const sim = async (simType: SimType) => {
-	const maxTicks = tickRate * simSeconds;
-	const deltaTime = Simulated.DeltaTime(tickRate);
-	mainLoop: while (simType !== SimType.Timed || tick <= maxTicks) {
-		tick++;
-		const [turbineRate, fissionRate] = reactorControllerTick();
-		reactor.tick();
-
-		Powered.UpdatePower(deltaTime);
-
-		const melted = reactor._GetMelted();
-
-		switch (simType) {
-			case SimType.RealTime: {
-				reactorLog(turbineRate, fissionRate);
-				await sleep(1000 / tickRate);
-				break;
-			}
-			case SimType.Timed: {
-				if (tick >= tickRate * simSeconds) reactorLog(turbineRate, fissionRate);
-				break;
-			}
-			case SimType.Endless: {
-				// Endless break conditions
-				if (reactor.GetFuelPercentageLeft() === 0) {
-					reactorLog(turbineRate, fissionRate);
-					break mainLoop;
-				}
-				break;
-			}
-		}
-
-		if (melted) {
-			reactorLog(turbineRate, fissionRate);
-			break;
-		}
-	}
+const logic = (tick: number) => {
+	logStatus(tick, reactorControllerTick());
 };
 
-const simSeconds = 4 * 60;
-const tickRate = 20;
-const reactor = new Reactor({
-	maxPowerOutput: 5200,
-	maxPowerOutputMultiplier: 1,
-	rods: [Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal)],
-	tickRate,
-	reactorMaxHealth: 100,
-	fireDelay: 20,
-	meltDownDelay: 120,
-	fuelConsumptionRate: 0.2,
-	playerDegreeOfSuccess: 0,
-	powerOn: true,
-	autoTemp: false,
-});
-
-const battery = new PowerContainer({
-	tickRate: tickRate,
-	capacityMultiplier: 1,
-	capacity: 1000,
-	maxRechargeSpeed: 500,
-	exponentialRechargeSpeed: false,
-	maxOutPut: 500,
-});
-
-const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
-	const turbineRate = reactor.GetLoad() / (reactor.maxPowerOutput / 100);
-	reactor.SetTurbineOutput(turbineRate);
-	const fissionRate = turbineRate / (reactor.GetFuel() / rE);
-	reactor.SetFissionRate(fissionRate);
-
-	return [turbineRate, fissionRate];
-};
-
-sim(SimType.RealTime);
+new Simulator({
+	simulate: Powered.PoweredList,
+	logic,
+	type: SimType.RealTime,
+	tickRate: 20,
+	maxTicks: 20 * 60,
+}).start();

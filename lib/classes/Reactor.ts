@@ -1,9 +1,8 @@
 import { Clamp, Lerp, NearlyEqual, adjustValueWithoutOverShooting } from "../math";
 import { FuelRod } from "./FuelRod";
 import { PowerPriority, PowerRange } from "./Power";
-import { Powered, PoweredInterface } from "./Powered";
+import { Powered } from "./Powered";
 import { Vector2 } from "./Generics";
-import { SimulatedInterface } from "./Simulated";
 
 type Rods = [FuelRod, FuelRod, FuelRod, FuelRod];
 
@@ -11,7 +10,6 @@ type ReactorOptions = {
 	maxPowerOutput: number;
 	maxPowerOutputMultiplier: number;
 	rods: Rods;
-	tickRate: number;
 	fuelConsumptionRate: number;
 	meltDownDelay: number;
 	fireDelay: number;
@@ -21,7 +19,7 @@ type ReactorOptions = {
 	autoTemp: boolean;
 };
 
-export class Reactor extends Powered implements SimulatedInterface, PoweredInterface {
+export class Reactor extends Powered {
 	private load: number = 0;
 
 	private meltDownTimer = 0;
@@ -141,7 +139,7 @@ export class Reactor extends Powered implements SimulatedInterface, PoweredInter
 	private readonly reactorMaxHealth: number;
 
 	constructor(opts: ReactorOptions) {
-		super(opts.tickRate, PowerPriority.Reactor);
+		super(PowerPriority.Reactor);
 		this.rods = opts.rods;
 		this.maxPowerOutputMultiplier = opts.maxPowerOutputMultiplier;
 		this.maxPowerOutput = opts.maxPowerOutput;
@@ -272,10 +270,8 @@ export class Reactor extends Powered implements SimulatedInterface, PoweredInter
 
 	private correctTurbineOutput: number = 0;
 
-	public tick(deltaTime?: number) {
+	public tick(deltaTime: number) {
 		if (this.melted) return;
-
-		deltaTime ??= this.deltaTime;
 
 		// use a smoothed "correct output" instead of the actual correct output based on the load
 		// so the player doesn't have to keep adjusting the rate impossibly fast when the load fluctuates heavily
