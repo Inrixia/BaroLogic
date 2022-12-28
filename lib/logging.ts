@@ -4,6 +4,7 @@ import { Reactor } from "./classes/Reactor";
 
 // Reactor
 export const reactorText = (reactor: Reactor, tickRate: number) => `Power Value Out: ${reactor.GetPowerValueOut().toFixed(2)} kW
+Load Value Out: ${reactor.GetLoadValueOut().toFixed(2)} kW
 Fuel Out: ${reactor.GetFuelOut()}
 Fuel Percentage Left: ${reactor.GetFuelPercentageLeft().toFixed(2)}%
 Temperature Out: ${(reactor.GetTemperatureOut() / 100).toFixed(2)}%

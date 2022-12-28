@@ -4,6 +4,7 @@ import { PowerContainer } from "./lib/classes/PowerContainer";
 import { SimInfo, SimStatus, Simulator } from "./lib/Simulator";
 import { Powered } from "./lib/classes/Powered";
 import { batteryText, gridText, reactorText } from "./lib/logging";
+import { LoadGenerator } from "./lib/classes/LoadGenerator";
 
 const reactor = new Reactor({
 	maxPowerOutput: 5200,
@@ -20,13 +21,15 @@ const reactor = new Reactor({
 
 const battery = new PowerContainer({
 	capacityMultiplier: 1,
-	capacity: 10000,
+	capacity: 2000,
 	charge: 0,
-	maxRechargeSpeed: 6000,
+	maxRechargeSpeed: 500,
 	exponentialRechargeSpeed: false,
 	maxOutPut: 500,
 	efficiency: 0.95,
 });
+
+const loadGenerator = new LoadGenerator();
 
 let efficiency = 75;
 const reactorControllerTick = () => {
@@ -56,8 +59,12 @@ Tick: ${tick}, Sec: ${time.toFixed(2)}s, DeltaTime: ${(deltaTime * 1000).toFixed
 	console.log(txt);
 };
 
-const logic = () => {
+const logic = ({ tick, tickRate }: SimInfo) => {
 	reactorControllerTick();
+
+	if (tick % tickRate === 0) {
+		loadGenerator.Load = 1000;
+	}
 
 	if (reactor.melted) return SimStatus.Stopped;
 	const goRealtime = Powered.Grid.Voltage > 2;
@@ -68,7 +75,7 @@ new Simulator({
 	simulate: Powered.PoweredList,
 	logic,
 	log,
-	type: SimStatus.Endless,
+	type: SimStatus.RealTime,
 	tickRate: 20,
 	simTime: 128,
 	simSpeed: 1,
