@@ -1,9 +1,7 @@
 import { Grid, PowerPriority, PowerRange } from "./Power";
 import { Simulated } from "./Simulated";
-import { Timing } from "./Timing";
 
 export class Powered extends Simulated {
-	protected updateInterval = Timing.Step;
 	/**
 	 * The amount of power currently consumed by the item. Negative values mean that the item is providing power to connected items
 	 */
@@ -76,7 +74,7 @@ export class Powered extends Simulated {
 	/**
 	 * Current power consumption of the device (or amount of generated power if negative)
 	 */
-	public GetCurrentPowerConsumption() {
+	public GetCurrentPowerConsumption(deltaTime: number) {
 		if (!this.isActive) return 0;
 		// Otherwise return the max powerconsumption of the device
 		return this.powerConsumption;
@@ -87,7 +85,7 @@ export class Powered extends Simulated {
 	 * Minimum and maximum power the connection can provide
 	 * @param load Load of the connected grid
 	 */
-	public MinMaxPowerOut(load: number): PowerRange {
+	public MinMaxPowerOut(load: number, deltaTime: number): PowerRange {
 		return PowerRange.Zero;
 	}
 
@@ -97,7 +95,7 @@ export class Powered extends Simulated {
 	 * @param load Current load on the grid
 	 * @returns Power pushed to the grid
 	 */
-	public GetPowerOut(power: number, load: number, minMaxPower: PowerRange): number {
+	public GetPowerOut(power: number, load: number, minMaxPower: PowerRange, deltaTime: number): number {
 		return Math.max(-this.currPowerConsumption, 0);
 	}
 
@@ -116,7 +114,7 @@ export class Powered extends Simulated {
 	public static UpdatePower(deltaTime: number) {
 		Powered.Grid.Voltage = 0;
 		Powered.Grid.Load = 0;
-		Powered.Grid.Power = 0;
+		Powered.Grid.Power = 500;
 
 		// Determine if devices are adding a load or providing power, also resolve solo nodes
 		for (const powered of Powered.PoweredList) {
@@ -126,19 +124,14 @@ export class Powered extends Simulated {
 			// powered.voltage -= deltaTime;
 
 			// Get the new load for the connection
-			const currLoad = powered.GetCurrentPowerConsumption();
+			const currLoad = powered.GetCurrentPowerConsumption(deltaTime);
 
-			// If its a load update its grid load
-			if (currLoad >= 0) {
-				powered.currPowerConsumption = currLoad;
-				Powered.Grid.Load += currLoad;
-			}
-		}
+			// Device consumed power
+			powered.currPowerConsumption = currLoad;
+			Powered.Grid.Load += currLoad;
 
-		for (const powered of Powered.PoweredList) {
-			if (powered.GetCurrentPowerConsumption() < 0) {
-				Powered.Grid.Power += powered.GetPowerOut(Powered.Grid.Power, Powered.Grid.Load, powered.MinMaxPowerOut(Powered.Grid.Load));
-			}
+			// Device produced power
+			Powered.Grid.Power += powered.GetPowerOut(Powered.Grid.Power, Powered.Grid.Load, powered.MinMaxPowerOut(Powered.Grid.Load, deltaTime), deltaTime);
 		}
 
 		// Calculate Grid voltage, limit between 0 - 1000
@@ -146,9 +139,9 @@ export class Powered extends Simulated {
 		if (Math.sign(Powered.Grid.Voltage) === -1) Powered.Grid.Voltage = 0;
 
 		for (const powered of Powered.PoweredList) {
-			powered.GridResolved();
+			powered.GridResolved(deltaTime);
 		}
 	}
 
-	public GridResolved() {}
+	public GridResolved(deltaTime: number) {}
 }

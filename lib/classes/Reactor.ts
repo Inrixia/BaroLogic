@@ -419,7 +419,7 @@ export class Reactor extends Powered {
 		return -1;
 	}
 
-	public MinMaxPowerOut(load: number): PowerRange {
+	public MinMaxPowerOut(): PowerRange {
 		let tolerance = 1;
 
 		// If within the optimal output allow for slight output adjustments

@@ -42,7 +42,8 @@ const reactor = new Reactor({
 
 const battery = new PowerContainer({
 	capacityMultiplier: 1,
-	capacity: 1000,
+	capacity: 2000,
+	charge: 0,
 	maxRechargeSpeed: 500,
 	exponentialRechargeSpeed: false,
 	maxOutPut: 500,
@@ -56,7 +57,7 @@ const reactorControllerTick = () => {
 };
 
 const log = ({ tick, time, tickRate, deltaTime }: SimInfo) => {
-	// console.clear();
+	console.clear();
 	const txt = `[== REACTOR ==]
 Power Value Out: ${reactor.GetPowerValueOut().toFixed(2)} kW
 Fuel Out: ${reactor.GetFuelOut()}
@@ -89,17 +90,17 @@ Is Powered On: ${reactor.powerOn}
 [== BATTERY ==]
 Power Value Out: ${battery.GetPowerValueOut().toFixed(2)} kW
 Load Value Out: ${battery.GetLoadValueOut().toFixed(2)} kW
-Charge: ${battery.GetCharge().toFixed(2)} kW
+Charge: ${battery.GetCharge().toFixed(2)} kWmin
 Charge %: ${battery.GetChargePrecentage().toFixed(2)}%
 Load Value Out: ${battery.GetLoadValueOut().toFixed(2)} kW
 Charge Rate: ${battery.GetChargeRate().toFixed(2)} %
 
 [== GRID ==]
-Voltage: ${Powered.Grid.Voltage}
-Load: ${Powered.Grid.Load}
-Power: ${Powered.Grid.Power}
+Voltage: ${Powered.Grid.Voltage.toFixed(2)}v
+Load: ${Powered.Grid.Load} Kw
+Power: ${Powered.Grid.Power} Kw
 
-Tick: ${tick}, Sec: ${time.toFixed(2)}, DeltaTime: ${deltaTime.toFixed(2)}`;
+Tick: ${tick}, Sec: ${time.toFixed(2)}s, DeltaTime: ${(deltaTime * 1000).toFixed(2)}ms`;
 
 	console.log(txt);
 };
@@ -114,7 +115,7 @@ new Simulator({
 	simulate: Powered.PoweredList,
 	logic,
 	log,
-	type: SimStatus.Timed,
-	tickRate: 100,
-	simTime: 60,
+	type: SimStatus.Endless,
+	tickRate: 1000,
+	simTime: 128,
 }).start();

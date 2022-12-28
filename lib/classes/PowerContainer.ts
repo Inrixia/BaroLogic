@@ -6,6 +6,7 @@ type PowerContainerOpts = {
 	maxRechargeSpeed: number;
 	capacityMultiplier: number;
 	capacity: number;
+	charge: number;
 	exponentialRechargeSpeed: boolean;
 	maxOutPut: number;
 	efficiency: number;
@@ -106,6 +107,7 @@ export class PowerContainer extends Powered {
 		super(PowerPriority.Battery);
 		this.capacityMultiplier = opts.capacityMultiplier;
 		this.capacity = opts.capacity;
+		this.charge = this.prevCharge = opts.charge;
 		this.rechargeSpeed = this.maxRechargeSpeed = opts.maxRechargeSpeed;
 		this.exponentialRechargeSpeed = opts.exponentialRechargeSpeed;
 		this.maxOutPut = opts.maxOutPut;
@@ -158,21 +160,22 @@ export class PowerContainer extends Powered {
 		}
 	}
 
-	public GridResolved() {
+	public GridResolved(deltaTime: number) {
 		// Increase charge based on how much power came in from the grid
-		this.charge += ((this.currPowerConsumption * this.voltage) / 60) * this.updateInterval * this.efficiency;
+		this.charge += ((this.currPowerConsumption * this.voltage) / 60) * deltaTime * this.efficiency;
 
 		// Decrease charge based on how much power is leaving the device
-		this.charge = Clamp(this.charge - (this.currPowerOutput / 60) * this.updateInterval, 0, this.adjustedCapacity);
+		this.charge = Clamp(this.charge - (this.currPowerOutput / 60) * deltaTime, 0, this.adjustedCapacity);
+		this.prevCharge = this.charge;
 	}
 
-	public GetPowerOut(load: number, power: number, minMaxPower: PowerRange) {
+	public GetPowerOut(load: number, power: number, minMaxPower: PowerRange, deltaTime: number) {
+		if (minMaxPower.Max <= 0) return 0;
 		// Set power output based on the relative max power output capabilities and load demand
-		this.currPowerOutput = Clamp((load - power) / minMaxPower.Max, 0, 1) * this.MinMaxPowerOut(load).Max;
-		return this.currPowerOutput;
+		return (this.currPowerOutput = Clamp((load - power) / minMaxPower.Max, 0, 1) * this.MinMaxPowerOut(load, deltaTime).Max);
 	}
 
-	public MinMaxPowerOut(load: number) {
+	public MinMaxPowerOut(load: number, deltaTime: number) {
 		let maxOutput;
 		let chargeRatio = this.prevCharge / this.adjustedCapacity;
 		if (chargeRatio < 0.1) {
@@ -182,7 +185,7 @@ export class PowerContainer extends Powered {
 		}
 
 		// Limit max power out to not exceed the charge of the container
-		maxOutput = Math.min(maxOutput, (this.prevCharge * 60) / this.updateInterval);
+		maxOutput = Math.min(maxOutput, (this.prevCharge * 60) / deltaTime);
 		return new PowerRange(0, maxOutput);
 	}
 }
