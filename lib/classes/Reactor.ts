@@ -51,7 +51,7 @@ export class Reactor extends Powered implements SimulatedInterface, PoweredInter
 		return this._maxPowerOutput;
 	}
 
-	private maxPowerOutputMultiplier: number;
+	private maxPowerOutputMultiplier: number = 1;
 
 	private _temperature: number = 0;
 	/**
@@ -143,8 +143,8 @@ export class Reactor extends Powered implements SimulatedInterface, PoweredInter
 	constructor(opts: ReactorOptions) {
 		super(opts.tickRate, PowerPriority.Reactor);
 		this.rods = opts.rods;
-		this.maxPowerOutput = opts.maxPowerOutput;
 		this.maxPowerOutputMultiplier = opts.maxPowerOutputMultiplier;
+		this.maxPowerOutput = opts.maxPowerOutput;
 		this.fuelConsumptionRate = opts.fuelConsumptionRate;
 		this.meltDownDelay = opts.meltDownDelay;
 		this.fireDelay = opts.fireDelay;
@@ -190,10 +190,12 @@ export class Reactor extends Powered implements SimulatedInterface, PoweredInter
 	private signalTurbineOutput: number | null = null;
 
 	public SetFissionRate(rate: number | null) {
-		this.signalFissionRate = rate;
+		if (rate === null) return (this.signalFissionRate = null);
+		this.signalFissionRate = Clamp(rate, 0, 100);
 	}
 	public SetTurbineOutput(output: number | null) {
-		this.signalTurbineOutput = output;
+		if (output === null) return (this.signalTurbineOutput = null);
+		this.signalTurbineOutput = Clamp(output, 0, 100);
 	}
 	// END Signals
 
