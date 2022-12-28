@@ -22,7 +22,8 @@ const rE = 75;
 let rF = 0;
 
 import { promisify } from "util";
-import { Reactor, Rod, Rods, Quality } from "./Reactor";
+import { Reactor } from "./lib/classes/Reactor";
+import { Rod, Rods, Quality } from "./lib/classes/FuelRod";
 const sleep = promisify(setTimeout);
 
 enum SimType {
@@ -40,23 +41,28 @@ const reactorLog = (turbineRate: number, fissionRate: number) => {
 	console.log(`Load: ${reactor.GetLoad()} kW`);
 
 	console.log();
-	console.log(`[Turbine] - Real: ${reactor.GetHiddenTurbineOutput().toFixed(2)}, Set: ${turbineRate.toFixed(2)}`);
-	console.log(`[Fission] - Real: ${reactor.GetHiddenFissionRate().toFixed(2)}, Set: ${fissionRate.toFixed(2)}`);
+	console.log(`Need More Fuel: ${reactor._GetNeedMoreFuel()}`);
+	console.log(`Too Much Fuel: ${reactor._GetTooMuchFuel()}`);
+	console.log();
+
+	console.log();
+	console.log(`[Turbine] - Real: ${reactor._GetTurbineOutput().toFixed(2)}, Set: ${turbineRate.toFixed(2)}`);
+	console.log(`[Fission] - Real: ${reactor._GetFissionRate().toFixed(2)}, Set: ${fissionRate.toFixed(2)}`);
 	console.log();
 
 	console.log();
 	console.log(
-		`Rods:${reactor.GetRods().map((rod) => {
+		`Rods:${reactor._GetRods().map((rod) => {
 			if (rod === null) return ` null`;
 			return ` ${((rod.durability / rod.maxDurability) * 100).toFixed(2)}%`;
 		})}`
 	);
-	console.log(`Temperature Critical: ${reactor.GetTemperatureCritical()}`);
-	console.log(`Temperature Hot: ${reactor.GetTemperatureHot()}`);
+	console.log(`Temperature Critical: ${reactor._GetTemperatureCritical()}`);
+	console.log(`Temperature Hot: ${reactor._GetTemperatureHot()}`);
 	console.log();
-	console.log(`On Fire: ${reactor.GetOnFire() / tickRate}s`);
-	console.log(`Melted: ${reactor.GetMelted()}`);
-	console.log(`Health: ${reactor.GetHealth()}%`);
+	console.log(`On Fire: ${reactor._GetOnFire() / tickRate}s`);
+	console.log(`Melted: ${reactor._GetMelted()}`);
+	console.log(`Health: ${reactor._GetHealth()}%`);
 	console.log();
 
 	console.log(`Tick: ${tick}, Sec: ${tick / tickRate}`);
@@ -70,7 +76,7 @@ const sim = async (simType: SimType) => {
 		const [turbineRate, fissionRate] = reactorControllerTick();
 		reactor.tick();
 
-		const melted = reactor.GetMelted();
+		const melted = reactor._GetMelted();
 
 		switch (simType) {
 			case SimType.RealTime: {
@@ -102,12 +108,20 @@ const sim = async (simType: SimType) => {
 const simSeconds = 4 * 60;
 const tickRate = 20;
 const reactor = new Reactor({
-	rMax: 5200,
+	maxPowerOutput: 5200,
+	maxPowerOutputMultiplier: 1,
 	rods: [Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal)],
 	tickRate,
+	reactorMaxHealth: 100,
+	fireDelay: 20,
+	meltDownDelay: 120,
+	fuelConsumptionRate: 0.2,
+	playerDegreeOfSuccess: 0,
+	powerOn: true,
+	autoTemp: false,
 });
 
-reactor.SetLoad(5200);
+// reactor._SetLoad(5200);
 
 const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
 	const turbineRate = reactor.GetLoad() / (reactor.maxPowerOutput / 100);
@@ -118,4 +132,4 @@ const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
 	return [turbineRate, fissionRate];
 };
 
-sim(SimType.Endless);
+sim(SimType.RealTime);
