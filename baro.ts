@@ -24,11 +24,9 @@ let rF = 0;
 import { Reactor } from "./lib/classes/Reactor";
 import { Rod, Rods, Quality } from "./lib/classes/FuelRod";
 import { PowerContainer } from "./lib/classes/PowerContainer";
-import { SimStatus, Simulator } from "./lib/Simulator";
+import { SimInfo, SimStatus, Simulator } from "./lib/Simulator";
 import { Powered } from "./lib/classes/Powered";
 
-const simSeconds = 4 * 60;
-const tickRate = 20;
 const reactor = new Reactor({
 	maxPowerOutput: 5200,
 	maxPowerOutputMultiplier: 1,
@@ -51,17 +49,14 @@ const battery = new PowerContainer({
 	efficiency: 0.95,
 });
 
-const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
+const reactorControllerTick = () => {
 	const turbineRate = reactor.GetLoadValueOut() / (reactor.maxPowerOutput / 100);
 	reactor.SetTurbineOutput(turbineRate);
-	const fissionRate = turbineRate / (reactor.GetFuelOut() / rE);
-	reactor.SetFissionRate(fissionRate);
-
-	return [turbineRate, fissionRate];
+	reactor.SetFissionRate(turbineRate / (reactor.GetFuelOut() / rE));
 };
 
-const log = (tick: number) => {
-	console.clear();
+const log = ({ tick, time, tickRate, deltaTime }: SimInfo) => {
+	// console.clear();
 	const txt = `[== REACTOR ==]
 Power Value Out: ${reactor.GetPowerValueOut().toFixed(2)} kW
 Fuel Out: ${reactor.GetFuelOut()}
@@ -104,12 +99,12 @@ Voltage: ${Powered.Grid.Voltage}
 Load: ${Powered.Grid.Load}
 Power: ${Powered.Grid.Power}
 
-Tick: ${tick}, Sec: ${tick / tickRate}`;
+Tick: ${tick}, Sec: ${time.toFixed(2)}, DeltaTime: ${deltaTime.toFixed(2)}`;
 
 	console.log(txt);
 };
 
-const logic = (tick: number) => {
+const logic = () => {
 	reactorControllerTick();
 
 	if (battery.GetChargePrecentage() > 99) return SimStatus.RealTime;
@@ -119,7 +114,7 @@ new Simulator({
 	simulate: Powered.PoweredList,
 	logic,
 	log,
-	type: SimStatus.Endless,
-	tickRate: 20,
-	maxTicks: 20 * 60,
+	type: SimStatus.Timed,
+	tickRate: 100,
+	simTime: 60,
 }).start();

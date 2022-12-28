@@ -8,58 +8,83 @@ export enum SimStatus {
 	Stopped,
 }
 
-type SimulatorOpts = {
-	simulate: Simulated[];
-	logic: (tick: number, maxTicks: number) => SimStatus | void;
-	log: (tick: number, maxTicks: number) => void;
-	type: SimStatus;
-	tickRate: number;
+export type SimInfo = {
+	tick: number;
 	maxTicks: number;
+	tickRate: number;
+	time: number;
+	deltaTime: number;
+	simTime: number;
 };
 
-import { promisify } from "util";
-const sleep = promisify(setTimeout);
+type SimulatorOpts = {
+	simulate: Simulated[];
+	logic?: (info: SimInfo) => SimStatus | void;
+	log?: (info: SimInfo) => void;
+	type: SimStatus;
+	tickRate: number;
+	simTime: number;
+};
 
 export class Simulator {
 	private simulate: SimulatorOpts["simulate"];
 	private status: SimulatorOpts["type"];
-	private logic: SimulatorOpts["logic"];
-	private log: SimulatorOpts["log"];
+	private logic: Exclude<SimulatorOpts["logic"], undefined>;
+	private log: Exclude<SimulatorOpts["log"], undefined>;
 
 	tickRate: SimulatorOpts["tickRate"];
-	maxTicks: SimulatorOpts["maxTicks"];
+	simTime: SimulatorOpts["simTime"];
 
 	constructor(opts: SimulatorOpts) {
 		this.simulate = opts.simulate;
 		this.status = opts.type;
-		this.logic = opts.logic;
-		this.log = opts.log;
+		this.logic = opts.logic ?? (() => {});
+		this.log = opts.log ?? (() => {});
 
 		this.tickRate = opts.tickRate;
-		this.maxTicks = opts.maxTicks;
+		this.simTime = opts.simTime;
+	}
+
+	private hrS(time?: [number, number]) {
+		const hrTime = process.hrtime(time);
+		return hrTime[0] + hrTime[1] / 1000000000;
 	}
 
 	public async start() {
-		const deltaTime = Simulated.DeltaTime(this.tickRate);
+		const staticDeltaTime = Simulated.DeltaTime(this.tickRate);
+		let deltaTime = staticDeltaTime;
 		let tick = 0;
+		let time = 0;
+
+		let lastTick = process.hrtime();
+		const targetDelta = 1 / this.tickRate;
+
+		const maxTicks = this.simTime * this.tickRate;
 		mainLoop: while (true) {
+			if (this.status === SimStatus.RealTime) {
+				if (this.hrS(lastTick) < targetDelta) continue;
+				deltaTime = this.hrS(lastTick);
+				lastTick = process.hrtime();
+			} else deltaTime = staticDeltaTime;
 			tick++;
+			time += deltaTime;
 
 			for (const simulated of this.simulate) simulated.tick(deltaTime);
 
 			Powered.UpdatePower(deltaTime);
 
-			this.status = this.logic(tick, this.maxTicks) ?? this.status;
+			const simInfo = { time, tick, tickRate: this.tickRate, simTime: this.simTime, deltaTime, maxTicks };
+
+			this.status = this.logic(simInfo) ?? this.status;
 
 			switch (this.status) {
 				case SimStatus.RealTime: {
-					this.log(tick, this.maxTicks);
-					await sleep(1000 / this.tickRate);
+					this.log(simInfo);
 					break;
 				}
 				case SimStatus.Timed: {
-					if (tick >= this.maxTicks) {
-						this.log(tick, this.maxTicks);
+					if (tick >= maxTicks) {
+						this.log(simInfo);
 						break mainLoop;
 					}
 					break;
