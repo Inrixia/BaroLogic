@@ -114,7 +114,7 @@ export class Powered extends Simulated {
 	public static UpdatePower(deltaTime: number) {
 		Powered.Grid.Voltage = 0;
 		Powered.Grid.Load = 0;
-		Powered.Grid.Power = 500;
+		Powered.Grid.Power = 0;
 
 		// Determine if devices are adding a load or providing power, also resolve solo nodes
 		for (const powered of Powered.PoweredList) {

@@ -416,7 +416,7 @@ export class Reactor extends Powered {
 	// Powered functions
 
 	public GetCurrentPowerConsumption() {
-		return -1;
+		return 0;
 	}
 
 	public MinMaxPowerOut(): PowerRange {

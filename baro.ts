@@ -108,7 +108,7 @@ Tick: ${tick}, Sec: ${time.toFixed(2)}s, DeltaTime: ${(deltaTime * 1000).toFixed
 const logic = () => {
 	reactorControllerTick();
 
-	if (battery.GetChargePrecentage() > 99) return SimStatus.RealTime;
+	if (battery.GetChargePrecentage() > 98) return SimStatus.RealTime;
 };
 
 new Simulator({
@@ -116,6 +116,6 @@ new Simulator({
 	logic,
 	log,
 	type: SimStatus.Endless,
-	tickRate: 1000,
+	tickRate: 20,
 	simTime: 128,
 }).start();
