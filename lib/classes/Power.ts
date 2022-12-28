@@ -20,12 +20,6 @@ export class PowerRange {
 	}
 }
 
-export class Grid {
-	public Voltage: number = 0;
-	public Load: number = 0;
-	public Power: number = 0;
-}
-
 export enum PowerPriority {
 	Default = 0,
 	Reactor = 1,

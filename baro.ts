@@ -48,7 +48,7 @@ Efficiency: ${efficiency.toFixed(2)}%
 ${batteryText(battery)}
 
 [== GRID ==]
-${gridText()}
+${gridText(tickRate)}
 
 [== SIM ==]
 Tick: ${tick}, Sec: ${time.toFixed(2)}s, DeltaTime: ${(deltaTime * 1000).toFixed(2)}ms`;
@@ -60,7 +60,7 @@ const logic = () => {
 	reactorControllerTick();
 
 	if (reactor.melted) return SimStatus.Stopped;
-	const goRealtime = battery.GetChargePrecentage() > 99 || reactor.meltDownTimer > 115;
+	const goRealtime = Powered.Grid.Voltage > 2;
 	if (goRealtime) return SimStatus.RealTime;
 };
 
@@ -68,8 +68,8 @@ new Simulator({
 	simulate: Powered.PoweredList,
 	logic,
 	log,
-	type: SimStatus.RealTime,
+	type: SimStatus.Endless,
 	tickRate: 20,
 	simTime: 128,
-	simSpeed: 2,
+	simSpeed: 1,
 }).start();

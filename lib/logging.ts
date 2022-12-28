@@ -40,6 +40,9 @@ Charge Rate: ${battery.GetChargeRate().toFixed(2)} %
 Real Charge Speed: ${battery.getRealChargeSpeed().toFixed(2)} kW`;
 
 // Grid
-export const gridText = () => `Voltage: ${Powered.Grid.Voltage.toFixed(2)}v
-Load: ${Powered.Grid.Load.toFixed(2)} Kw
-Power: ${Powered.Grid.Power.toFixed(2)} Kw`;
+export const gridText = (tickRate: number) => `Load: ${Powered.Grid.Load.toFixed(2)} Kw
+Power: ${Powered.Grid.Power.toFixed(2)} Kw
+
+Voltage: ${Powered.Grid.Voltage.toFixed(2)}v
+Overload In: ${Powered.Grid.overloadCooldownTimer.toFixed(2)}s
+Health: ${Powered.Grid.Health.toFixed(2)}%`;

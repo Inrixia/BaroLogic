@@ -1,4 +1,5 @@
-import { Grid, PowerPriority, PowerRange } from "./Power";
+import { PowerPriority, PowerRange } from "./Power";
+import { Grid } from "./Grid";
 import { Simulated } from "./Simulated";
 
 export class Powered extends Simulated {
@@ -141,6 +142,8 @@ export class Powered extends Simulated {
 		for (const powered of Powered.PoweredList) {
 			powered.GridResolved(deltaTime);
 		}
+
+		Powered.Grid.UpdateFaliures(deltaTime);
 	}
 
 	public GridResolved(deltaTime: number) {}
