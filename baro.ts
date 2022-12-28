@@ -24,7 +24,7 @@ let rF = 0;
 import { Reactor } from "./lib/classes/Reactor";
 import { Rod, Rods, Quality } from "./lib/classes/FuelRod";
 import { PowerContainer } from "./lib/classes/PowerContainer";
-import { SimType, Simulator } from "./lib/Simulator";
+import { SimStatus, Simulator } from "./lib/Simulator";
 import { Powered } from "./lib/classes/Powered";
 
 const simSeconds = 4 * 60;
@@ -60,7 +60,7 @@ const reactorControllerTick = (): [setTurbine: number, setFission: number] => {
 	return [turbineRate, fissionRate];
 };
 
-const logStatus = (tick: number, [turbineRate, fissionRate]: [number, number]) => {
+const log = (tick: number) => {
 	console.clear();
 	const txt = `[== REACTOR ==]
 Power Value Out: ${reactor.GetPowerValueOut().toFixed(2)} kW
@@ -72,8 +72,8 @@ Load Value Out: ${reactor.GetLoadValueOut()} kW
 Need More Fuel: ${reactor.needMoreFuel}
 Too Much Fuel: ${reactor.tooMuchFuel}
 
-[Turbine] - Real: ${reactor.turbineOutput.toFixed(2)}, Set: ${turbineRate.toFixed(2)}
-[Fission] - Real: ${reactor.fissionRate.toFixed(2)}, Set: ${fissionRate.toFixed(2)}
+[Turbine] - Real: ${reactor.turbineOutput.toFixed(2)}, Set: ${reactor.signalTurbineOutput?.toFixed(2)}
+[Fission] - Real: ${reactor.fissionRate.toFixed(2)}, Set: ${reactor.signalFissionRate?.toFixed(2)}
 
 Rods:${reactor.rods.map((rod) => {
 		if (rod === null) return ` null`;
@@ -99,19 +99,27 @@ Charge %: ${battery.GetChargePrecentage().toFixed(2)}%
 Load Value Out: ${battery.GetLoadValueOut().toFixed(2)} kW
 Charge Rate: ${battery.GetChargeRate().toFixed(2)} %
 
+[== GRID ==]
+Voltage: ${Powered.Grid.Voltage}
+Load: ${Powered.Grid.Load}
+Power: ${Powered.Grid.Power}
+
 Tick: ${tick}, Sec: ${tick / tickRate}`;
 
 	console.log(txt);
 };
 
 const logic = (tick: number) => {
-	logStatus(tick, reactorControllerTick());
+	reactorControllerTick();
+
+	if (battery.GetChargePrecentage() > 99) return SimStatus.RealTime;
 };
 
 new Simulator({
 	simulate: Powered.PoweredList,
 	logic,
-	type: SimType.RealTime,
+	log,
+	type: SimStatus.Endless,
 	tickRate: 20,
 	maxTicks: 20 * 60,
 }).start();

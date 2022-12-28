@@ -205,16 +205,29 @@ export class Reactor extends Powered {
 		return this.load;
 	}
 
-	private signalFissionRate: number | null = null;
-	private signalTurbineOutput: number | null = null;
+	private _signalFissionRate: number | null = null;
+	private set signalFissionRate(rate: number | null) {
+		if (rate === null) this._signalFissionRate = null;
+		else this._signalFissionRate = Clamp(rate, 0, 100);
+	}
+	public get signalFissionRate() {
+		return this._signalFissionRate;
+	}
+
+	private _signalTurbineOutput: number | null = null;
+	private set signalTurbineOutput(output: number | null) {
+		if (output === null) this._signalTurbineOutput = null;
+		else this._signalTurbineOutput = Clamp(output, 0, 100);
+	}
+	public get signalTurbineOutput() {
+		return this._signalTurbineOutput;
+	}
 
 	public SetFissionRate(rate: number | null) {
-		if (rate === null) return (this.signalFissionRate = null);
-		this.signalFissionRate = Clamp(rate, 0, 100);
+		this.signalFissionRate = rate;
 	}
 	public SetTurbineOutput(output: number | null) {
-		if (output === null) return (this.signalTurbineOutput = null);
-		this.signalTurbineOutput = Clamp(output, 0, 100);
+		this.signalTurbineOutput = output;
 	}
 	// END Signals
 

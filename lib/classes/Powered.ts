@@ -64,7 +64,7 @@ export class Powered extends Simulated {
 	 * List of all powered ItemComponents
 	 */
 	public static readonly PoweredList: Powered[] = [];
-	protected static readonly Grid: Grid = new Grid();
+	public static readonly Grid: Grid = new Grid();
 
 	constructor(powerPriority: PowerPriority = PowerPriority.Default) {
 		super();
