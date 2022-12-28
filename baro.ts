@@ -29,13 +29,8 @@ const battery = new PowerContainer({
 });
 
 let efficiency = 75;
-let load = 0;
 const reactorControllerTick = () => {
-	load = Math.min(reactor.GetLoadValueOut(), reactor.maxPowerOutput);
-	const power = reactor.GetPowerValueOut();
-	if (power >= load + 10) efficiency -= 0.1;
-	// if (power <= load) efficiency += 0.1;
-
+	const load = Math.min(reactor.GetLoadValueOut(), reactor.maxPowerOutput);
 	const turbineRate = load / (reactor.maxPowerOutput / 100);
 	reactor.SetTurbineOutput(turbineRate);
 	reactor.SetFissionRate(turbineRate / (reactor.GetFuelOut() / efficiency));
@@ -48,7 +43,6 @@ ${reactorText(reactor, tickRate)}
 
 [== ARC ==]
 Efficiency: ${efficiency.toFixed(2)}%
-Load: ${load.toFixed(2)} kW
 
 [== BATTERY ==]
 ${batteryText(battery)}
