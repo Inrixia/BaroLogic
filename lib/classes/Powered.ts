@@ -152,6 +152,10 @@ export class Powered extends Simulated implements PoweredInterface {
 		// Calculate Grid voltage, limit between 0 - 1000
 		Powered.Grid.Voltage = Math.min(Powered.Grid.Power / Math.max(Powered.Grid.Load, 1e-10), 1000);
 		if (Math.sign(Powered.Grid.Voltage) === -1) Powered.Grid.Voltage = 0;
+
+		for (const powered of Powered.PoweredList) {
+			powered.GridResolved();
+		}
 	}
 
 	public GridResolved() {}
