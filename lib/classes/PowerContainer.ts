@@ -16,7 +16,7 @@ export class PowerContainer extends Powered {
 	/**
 	 * Maximum output of the device when fully charged (kW).
 	 */
-	private maxOutPut: number = 0;
+	private maxOutPut: number = 1000;
 
 	/**
 	 * Capacity Multiplier from Talents
