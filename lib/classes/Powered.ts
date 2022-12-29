@@ -23,13 +23,31 @@ export class Powered extends Simulated {
 	 */
 	private powerConsumption: number = 0;
 
-	private _voltage: number = 0;
+	/**
+	 * Maximum voltage factor when the device is being overvolted. I.e. how many times more effectively the device can function when it's being overvolted
+	 */
+	protected readonly MaxOverVoltageFactor = 2;
+
+	/**
+	 * Priority of this device on the network.
+	 */
+	protected powerPriority: PowerPriority;
+
+	/**
+	 * List of all powered Devices
+	 */
+	public static readonly PoweredList: Powered[] = [];
+	/**
+	 * The grid to use for all Devices
+	 */
+	public static readonly Grid: Grid = new Grid();
+
+	private _isActive: boolean = false;
+	private _minVoltage: number = 0;
+
 	/**
 	 * Current voltage of the item (load / power)
 	 */
-	// protected set voltage(voltage: number) {
-	// 	this._voltage = Math.max(0, voltage);
-	// }
 	protected get voltage() {
 		return Powered.Grid.Voltage;
 	}
@@ -37,7 +55,7 @@ export class Powered extends Simulated {
 	/**
 	 * The minimum voltage required for the item to work
 	 */
-	private _minVoltage: number = 0;
+
 	protected set minVoltage(voltage: number) {
 		this._minVoltage = voltage;
 	}
@@ -45,7 +63,6 @@ export class Powered extends Simulated {
 		return this.powerConsumption <= 0 ? 0 : this._minVoltage;
 	}
 
-	private _isActive: boolean = false;
 	/**
 	 * Is the device currently active. Inactive devices don't consume power.
 	 */
@@ -56,19 +73,6 @@ export class Powered extends Simulated {
 	protected get isActive(): boolean {
 		return this._isActive;
 	}
-
-	/**
-	 * Maximum voltage factor when the device is being overvolted. I.e. how many times more effectively the device can function when it's being overvolted
-	 */
-	protected readonly MaxOverVoltageFactor = 2;
-
-	protected powerPriority: PowerPriority;
-
-	/**
-	 * List of all powered ItemComponents
-	 */
-	public static readonly PoweredList: Powered[] = [];
-	public static readonly Grid: Grid = new Grid();
 
 	constructor(powerPriority: PowerPriority = PowerPriority.Default) {
 		super();
@@ -104,6 +108,11 @@ export class Powered extends Simulated {
 	protected GetPowerOut(power: number, load: number, minMaxPower: PowerRange, deltaTime: number): number {
 		return Math.max(-this.currPowerConsumption, 0);
 	}
+
+	/**
+	 * Can be overridden to perform updates for the device after the connected grid has resolved its power calculations, i.e. storing voltage for later updates
+	 */
+	protected GridResolved(deltaTime: number) {}
 
 	/**
 	 * Update the power calculations of all devices and grids
@@ -145,6 +154,4 @@ export class Powered extends Simulated {
 
 		Powered.Grid.UpdateFaliures(deltaTime);
 	}
-
-	protected GridResolved(deltaTime: number) {}
 }
