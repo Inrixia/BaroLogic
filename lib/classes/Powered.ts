@@ -2,6 +2,11 @@ import { PowerPriority, PowerRange } from "./Power";
 import { Grid } from "./Grid";
 import { Simulated } from "./Simulated";
 
+export enum GridDirection {
+	Power,
+	Load,
+}
+
 export class Powered extends Simulated {
 	/**
 	 * The amount of power currently consumed by the item. Negative values mean that the item is providing power to connected items
@@ -69,7 +74,7 @@ export class Powered extends Simulated {
 		super();
 		this.powerPriority = powerPriority;
 		Powered.PoweredList.push(this);
-		Powered.PoweredList.sort((a, b) => b.powerPriority - a.powerPriority);
+		Powered.PoweredList.sort((a, b) => a.powerPriority - b.powerPriority);
 	}
 
 	/**
@@ -117,21 +122,16 @@ export class Powered extends Simulated {
 		Powered.Grid.Load = 0;
 		Powered.Grid.Power = 0;
 
-		// Determine if devices are adding a load or providing power, also resolve solo nodes
+		// Device consumed power
 		for (const powered of Powered.PoweredList) {
-			// // Make voltage decay to ensure the device powers down.
-			// // This only effects devices with no power input (whose voltage is set by other means, e.g. status effects from a contained battery)
-			// // or devices that have been disconnected from the power grid - other devices use the voltage of the grid instead.
-			// powered.voltage -= deltaTime;
-
-			// Get the new load for the connection
 			const currLoad = powered.GetCurrentPowerConsumption(deltaTime);
 
-			// Device consumed power
 			powered.currPowerConsumption = currLoad;
 			Powered.Grid.Load += currLoad;
+		}
 
-			// Device produced power
+		// Device produced power
+		for (const powered of Powered.PoweredList) {
 			Powered.Grid.Power += powered.GetPowerOut(Powered.Grid.Power, Powered.Grid.Load, powered.MinMaxPowerOut(Powered.Grid.Load, deltaTime), deltaTime);
 		}
 

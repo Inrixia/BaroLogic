@@ -34,6 +34,7 @@ Is Powered On: ${reactor.powerOn}`;
 
 // Battery
 export const batteryText = (battery: PowerContainer) => `Power Value Out: ${battery.GetPowerValueOut().toFixed(2)} kW
+Load Value Out: ${battery.GetLoadValueOut().toFixed(2)} kW
 Charge: ${battery.GetCharge().toFixed(2)} kWmin
 Charge %: ${battery.GetChargePrecentage().toFixed(2)}%
 Charge Rate: ${battery.GetChargeRate().toFixed(2)} %

@@ -4,8 +4,8 @@ import { Powered } from "./Powered";
 
 type PowerContainerOpts = {
 	maxRechargeSpeed: number;
-	capacityMultiplier: number;
-	capacity: number;
+	maxChargeMultiplier: number;
+	maxCharge: number;
 	charge: number;
 	exponentialRechargeSpeed: boolean;
 	maxOutPut: number;
@@ -21,7 +21,7 @@ export class PowerContainer extends Powered {
 	/**
 	 * Capacity Multiplier from Talents
 	 */
-	private capacityMultiplier: number;
+	private maxChargeMultiplier: number;
 
 	/**
 	 * If true, the recharge speed (and power consumption) of the device goes up exponentially as the recharge rate is increased.
@@ -40,16 +40,16 @@ export class PowerContainer extends Powered {
 
 	private adjustedCapacity: number = 0;
 
-	private _capacity: number = 0;
+	private _maxCharge: number = 0;
 	/**
 	 * The maximum capacity of the device (kW * min). For example, a value of 1000 means the device can output 100 kilowatts of power for 10 minutes, or 1000 kilowatts for 1 minute.
 	 */
-	private get capacity() {
-		return this._capacity;
+	private get maxCharge() {
+		return this._maxCharge;
 	}
-	private set capacity(capacity: number) {
-		this._capacity = Math.max(capacity, 1);
-		this.adjustedCapacity = this._capacity * this.capacityMultiplier;
+	private set maxCharge(capacity: number) {
+		this._maxCharge = Math.max(capacity, 1);
+		this.adjustedCapacity = this._maxCharge * this.maxChargeMultiplier;
 	}
 
 	private prevCharge: number = 0;
@@ -101,8 +101,8 @@ export class PowerContainer extends Powered {
 
 	constructor(opts: PowerContainerOpts) {
 		super(PowerPriority.Battery);
-		this.capacityMultiplier = opts.capacityMultiplier;
-		this.capacity = opts.capacity;
+		this.maxChargeMultiplier = opts.maxChargeMultiplier;
+		this.maxCharge = opts.maxCharge;
 		this.charge = this.prevCharge = opts.charge;
 		this.rechargeSpeed = this.maxRechargeSpeed = opts.maxRechargeSpeed;
 		this.exponentialRechargeSpeed = opts.exponentialRechargeSpeed;
@@ -161,18 +161,18 @@ export class PowerContainer extends Powered {
 	}
 
 	public GridResolved(deltaTime: number) {
-		// Increase charge based on how much power came in from the grid
-		this.charge += ((this.currPowerConsumption * this.voltage) / 60) * deltaTime * this.efficiency;
-
 		// Decrease charge based on how much power is leaving the device
 		this.charge = Clamp(this.charge - (this.currPowerOutput / 60) * deltaTime, 0, this.adjustedCapacity);
 		this.prevCharge = this.charge;
+
+		// Increase charge based on how much power came in from the grid
+		this.charge += ((this.currPowerConsumption * this.voltage) / 60) * deltaTime * this.efficiency;
 	}
 
 	public GetPowerOut(load: number, power: number, minMaxPower: PowerRange, deltaTime: number) {
 		if (minMaxPower.Max <= 0) return 0;
 		// Set power output based on the relative max power output capabilities and load demand
-		return (this.currPowerOutput = Clamp((load - power) / minMaxPower.Max, 0, 1) * this.MinMaxPowerOut(load, deltaTime).Max);
+		return (this.currPowerOutput = Clamp((power - load) / minMaxPower.Max, 0, 1) * this.MinMaxPowerOut(load, deltaTime).Max);
 	}
 
 	public MinMaxPowerOut(load: number, deltaTime: number) {

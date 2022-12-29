@@ -20,12 +20,12 @@ const reactor = new Reactor({
 });
 
 const battery = new PowerContainer({
-	capacityMultiplier: 1,
-	capacity: 2000,
+	maxChargeMultiplier: 1,
+	maxCharge: 1000,
 	charge: 0,
 	maxRechargeSpeed: 500,
 	exponentialRechargeSpeed: false,
-	maxOutPut: 500,
+	maxOutPut: 1000,
 	efficiency: 0.95,
 });
 
@@ -62,12 +62,14 @@ Tick: ${tick}, Sec: ${time.toFixed(2)}s, DeltaTime: ${(deltaTime * 1000).toFixed
 const logic = ({ tick, tickRate }: SimInfo) => {
 	reactorControllerTick();
 
-	if (tick % tickRate === 0) {
-		loadGenerator.Load = 1000;
-	}
+	loadGenerator.Load = 1000;
+
+	// if (battery.GetChargePrecentage() > 10) {
+	// 	battery.SetChargeRate(0);
+	// }
 
 	if (reactor.melted) return SimStatus.Stopped;
-	const goRealtime = Powered.Grid.Voltage > 2;
+	const goRealtime = Powered.Grid.Voltage > 2 || battery.GetChargePrecentage() >= 9;
 	if (goRealtime) return SimStatus.RealTime;
 };
 
