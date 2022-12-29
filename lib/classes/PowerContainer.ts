@@ -3,25 +3,14 @@ import { PowerPriority, PowerRange } from "./Power";
 import { Powered } from "./Powered";
 
 type PowerContainerOpts = {
-	maxRechargeSpeed: number;
-	maxChargeMultiplier: number;
-	maxCharge: number;
-	charge: number;
-	exponentialRechargeSpeed: boolean;
-	maxOutPut: number;
-	efficiency: number;
+	maxRechargeSpeed?: number;
+	maxChargeMultiplier?: number;
+	maxCharge?: number;
+	charge?: number;
+	exponentialRechargeSpeed?: boolean;
+	maxOutPut?: number;
+	efficiency?: number;
 };
-
-export const DefaultPowerContainer = () =>
-	new PowerContainer({
-		maxChargeMultiplier: 1,
-		maxCharge: 2000,
-		charge: 0,
-		maxRechargeSpeed: 500,
-		exponentialRechargeSpeed: false,
-		maxOutPut: 1000,
-		efficiency: 0.95,
-	});
 
 export class PowerContainer extends Powered {
 	/**
@@ -32,51 +21,52 @@ export class PowerContainer extends Powered {
 	/**
 	 * Capacity Multiplier from Talents
 	 */
-	private maxChargeMultiplier: number;
+	private maxChargeMultiplier: number = 1;
 
 	/**
 	 * If true, the recharge speed (and power consumption) of the device goes up exponentially as the recharge rate is increased.
 	 */
-	private exponentialRechargeSpeed: boolean;
+	private exponentialRechargeSpeed: boolean = false;
 
-	protected readonly powerPriority: PowerPriority = PowerPriority.Battery;
+	private adjustedCapacity: number = 0;
+	private prevCharge: number = 0;
 
 	private _currPowerOutput: number = 0;
-	private get currPowerOutput() {
-		return this._currPowerOutput;
-	}
+
+	private _maxCharge: number = 2000;
+	private _maxRechargeSpeed: number = 500;
+	private _rechargeSpeed: number = this._maxRechargeSpeed;
+	private _efficiency: number = 0.95;
+	private _charge: number = 0;
+
 	private set currPowerOutput(power: number) {
 		this._currPowerOutput = Math.max(power, 0);
 	}
+	private get currPowerOutput() {
+		return this._currPowerOutput;
+	}
 
-	private adjustedCapacity: number = 0;
-
-	private _maxCharge: number = 0;
 	/**
 	 * The maximum capacity of the device (kW * min). For example, a value of 1000 means the device can output 100 kilowatts of power for 10 minutes, or 1000 kilowatts for 1 minute.
 	 */
-	private get maxCharge() {
-		return this._maxCharge;
-	}
 	private set maxCharge(capacity: number) {
 		this._maxCharge = Math.max(capacity, 1);
 		this.adjustedCapacity = this._maxCharge * this.maxChargeMultiplier;
 	}
+	private get maxCharge() {
+		return this._maxCharge;
+	}
 
-	private prevCharge: number = 0;
-
-	private _charge: number = 0;
 	/**
 	 * The current charge of the device.
 	 */
-	private get charge() {
-		return this._charge;
-	}
 	private set charge(charge: number) {
 		this._charge = Clamp(charge, 0, this.adjustedCapacity);
 	}
+	private get charge() {
+		return this._charge;
+	}
 
-	private _maxRechargeSpeed: number = 0;
 	/**
 	 * How fast the device can be recharged. For example, a recharge speed of 100 kW and a capacity of 1000 kW*min would mean it takes 10 minutes to fully charge the device.
 	 */
@@ -87,7 +77,6 @@ export class PowerContainer extends Powered {
 		return this._maxRechargeSpeed;
 	}
 
-	private _rechargeSpeed: number = 0;
 	/**
 	 * The current recharge speed of the device.
 	 */
@@ -99,31 +88,35 @@ export class PowerContainer extends Powered {
 		return this._rechargeSpeed;
 	}
 
-	private _efficiency: number = 0;
 	/**
 	 * The amount of power you can get out of a item relative to the amount of power that's put into it.
 	 */
-	private get efficiency() {
-		return this._efficiency;
-	}
 	private set efficiency(efficiency: number) {
 		this._efficiency = Clamp(efficiency, 0, 1);
 	}
+	private get efficiency() {
+		return this._efficiency;
+	}
 
-	constructor(opts: PowerContainerOpts) {
+	constructor(opts: PowerContainerOpts = {}) {
 		super(PowerPriority.Battery);
-		this.maxChargeMultiplier = opts.maxChargeMultiplier;
-		this.maxCharge = opts.maxCharge;
-		this.charge = this.prevCharge = opts.charge;
-		this.rechargeSpeed = this.maxRechargeSpeed = opts.maxRechargeSpeed;
-		this.exponentialRechargeSpeed = opts.exponentialRechargeSpeed;
-		this.maxOutPut = opts.maxOutPut;
-		this.efficiency = opts.efficiency;
+
+		this.maxRechargeSpeed = opts.maxRechargeSpeed ?? this.maxRechargeSpeed;
+		this.maxChargeMultiplier = opts.maxChargeMultiplier ?? this.maxChargeMultiplier;
+		this.maxCharge = opts.maxCharge ?? this.maxCharge;
+		this.charge = opts.charge ?? this.charge;
+		this.exponentialRechargeSpeed = opts.exponentialRechargeSpeed ?? this.exponentialRechargeSpeed;
+		this.maxOutPut = opts.maxOutPut ?? this.maxOutPut;
+		this.efficiency = opts.efficiency ?? this.efficiency;
 
 		this.isActive = true;
 	}
 
-	// BEGIN Signals
+	public getRealChargeSpeed() {
+		return this.currPowerConsumption * this.voltage * this.efficiency;
+	}
+
+	// Signals
 	public GetPowerValueOut(): number {
 		return this.currPowerOutput;
 	}
@@ -144,8 +137,8 @@ export class PowerContainer extends Powered {
 		const rechargeRate = Clamp(rate / 100, 0, 1);
 		this.rechargeSpeed = rechargeRate * this.maxRechargeSpeed;
 	}
-	// END Signals
 
+	// Powered
 	protected GetCurrentPowerConsumption() {
 		// Don't draw power if fully charged
 		if (this.charge >= this.adjustedCapacity) {
@@ -165,10 +158,6 @@ export class PowerContainer extends Powered {
 
 			return Clamp(targetRechargeSpeed, 0, this.maxRechargeSpeed);
 		}
-	}
-
-	public getRealChargeSpeed() {
-		return this.currPowerConsumption * this.voltage * this.efficiency;
 	}
 
 	protected GridResolved(deltaTime: number) {

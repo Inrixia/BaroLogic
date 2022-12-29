@@ -304,6 +304,8 @@ export class Reactor extends Powered {
 		this.degreeOfSuccess = opts.playerDegreeOfSuccess ?? this.degreeOfSuccess;
 		this.powerOn = opts.powerOn ?? this.powerOn;
 		this.autoTemp = opts.autoTemp ?? this.autoTemp;
+
+		this.isActive = true;
 	}
 
 	// Ingame Signals

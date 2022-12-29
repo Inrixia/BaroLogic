@@ -11,15 +11,7 @@ const reactor = new Reactor({
 	rods: [Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal)],
 });
 
-const battery = new PowerContainer({
-	maxChargeMultiplier: 1,
-	maxCharge: 10000,
-	charge: 0,
-	maxRechargeSpeed: 10000,
-	exponentialRechargeSpeed: false,
-	maxOutPut: 1000,
-	efficiency: 0.95,
-});
+const battery = new PowerContainer();
 
 const loadGenerator = new LoadGenerator();
 
