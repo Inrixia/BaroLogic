@@ -505,7 +505,7 @@ export class Reactor extends Powered {
 		let newLoad = loadLeft;
 
 		// Adjust behaviour for multi reactor setup
-		if (this.maxPowerOutput != minMaxPower.ReactorMaxOutput) {
+		if (this.maxPowerOutput !== minMaxPower.ReactorMaxOutput && minMaxPower.ReactorMaxOutput !== 0) {
 			const idealLoad = (this.maxPowerOutput / minMaxPower.ReactorMaxOutput) * loadLeft;
 			const loadAdjust = Clamp((ratio - 0.5) * 25 + idealLoad - (this.turbineOutput / 100) * this.maxPowerOutput, -this.maxPowerOutput / 100, this.maxPowerOutput / 100);
 			newLoad = Clamp(loadLeft - (expectedPower - output) + loadAdjust, 0, loadLeft);
