@@ -37,6 +37,17 @@ export class Powered extends Simulated {
 	 * List of all powered Devices
 	 */
 	public static readonly PoweredList: Powered[] = [];
+
+	/**
+	 * Arrays of all powered Devices by priority
+	 */
+	public static readonly PoweredListByPriority: Record<PowerPriority, Powered[]> = {
+		[PowerPriority.Default]: [],
+		[PowerPriority.Reactor]: [],
+		[PowerPriority.Relay]: [],
+		[PowerPriority.Battery]: [],
+	};
+
 	/**
 	 * The grid to use for all Devices
 	 */
@@ -78,7 +89,7 @@ export class Powered extends Simulated {
 		super();
 		this.powerPriority = powerPriority;
 		Powered.PoweredList.push(this);
-		Powered.PoweredList.sort((a, b) => a.powerPriority - b.powerPriority);
+		Powered.PoweredListByPriority[powerPriority].push(this);
 	}
 
 	/**
@@ -91,7 +102,6 @@ export class Powered extends Simulated {
 	}
 
 	/**
-	 * /**
 	 * Minimum and maximum power the connection can provide
 	 * @param load Load of the connected grid
 	 */
@@ -131,6 +141,8 @@ export class Powered extends Simulated {
 		Powered.Grid.Load = 0;
 		Powered.Grid.Power = 0;
 
+		const srcMinMax = PowerRange.Zero;
+
 		// Device consumed power
 		for (const powered of Powered.PoweredList) {
 			const currLoad = powered.GetCurrentPowerConsumption(deltaTime);
@@ -139,9 +151,17 @@ export class Powered extends Simulated {
 			Powered.Grid.Load += currLoad;
 		}
 
-		// Device produced power
 		for (const powered of Powered.PoweredList) {
-			Powered.Grid.Power += powered.GetPowerOut(Powered.Grid.Power, Powered.Grid.Load, powered.MinMaxPowerOut(Powered.Grid.Load, deltaTime), deltaTime);
+			srcMinMax.Add(powered.MinMaxPowerOut(Powered.Grid.Load, deltaTime));
+		}
+
+		// Device produced power
+		for (const priorityList of Object.values(Powered.PoweredListByPriority)) {
+			let addPower = 0;
+			for (const powered of priorityList) {
+				addPower += powered.GetPowerOut(Powered.Grid.Power, Powered.Grid.Load, srcMinMax, deltaTime);
+			}
+			Powered.Grid.Power += addPower;
 		}
 
 		// Calculate Grid voltage, limit between 0 - 1000

@@ -1,10 +1,12 @@
 export class PowerRange {
-	public static readonly Zero: PowerRange = new PowerRange(0, 0);
+	public static get Zero(): PowerRange {
+		return new PowerRange(0, 0);
+	}
 
-	public readonly Min: number;
-	public readonly Max: number;
+	public Min: number;
+	public Max: number;
 
-	public readonly ReactorMaxOutput: number;
+	public ReactorMaxOutput: number;
 
 	constructor(Min: number, Max: number, reactorMaxOutput: number = 0) {
 		this.Min = Min;
@@ -12,11 +14,15 @@ export class PowerRange {
 		this.ReactorMaxOutput = reactorMaxOutput;
 	}
 
-	public static Add(a: PowerRange, b: PowerRange): PowerRange {
-		return new PowerRange(a.Min + b.Min, a.Max + b.Max, a.ReactorMaxOutput + b.ReactorMaxOutput);
+	public Add(b: PowerRange) {
+		this.Min = this.Min + b.Min;
+		this.Max = this.Max + b.Max;
+		this.ReactorMaxOutput = this.ReactorMaxOutput + b.ReactorMaxOutput;
 	}
-	public static Minus(a: PowerRange, b: PowerRange): PowerRange {
-		return new PowerRange(a.Min - b.Min, a.Max - b.Max, a.ReactorMaxOutput - b.ReactorMaxOutput);
+	public Minus(b: PowerRange) {
+		this.Min = this.Min - b.Min;
+		this.Max = this.Max - b.Max;
+		this.ReactorMaxOutput = this.ReactorMaxOutput - b.ReactorMaxOutput;
 	}
 }
 
@@ -25,4 +31,9 @@ export enum PowerPriority {
 	Reactor = 1,
 	Relay = 2,
 	Battery = 5,
+}
+
+export enum Connection {
+	In,
+	Out,
 }

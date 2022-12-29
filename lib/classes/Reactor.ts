@@ -313,8 +313,7 @@ export class Reactor extends Powered {
 		return this.temperature * 100;
 	}
 	public GetPowerValueOut() {
-		const temperatureFactor = Math.min(this.temperature / 50, 1);
-		return this.maxPowerOutput * Math.min(this.turbineOutput / 100, temperatureFactor);
+		return -this.currPowerConsumption;
 	}
 	public GetFuelOut() {
 		return this.fuelHeat;
@@ -505,7 +504,7 @@ export class Reactor extends Powered {
 		let newLoad = loadLeft;
 
 		// Adjust behaviour for multi reactor setup
-		if (this.maxPowerOutput !== minMaxPower.ReactorMaxOutput && minMaxPower.ReactorMaxOutput !== 0) {
+		if (this.maxPowerOutput !== minMaxPower.ReactorMaxOutput) {
 			const idealLoad = (this.maxPowerOutput / minMaxPower.ReactorMaxOutput) * loadLeft;
 			const loadAdjust = Clamp((ratio - 0.5) * 25 + idealLoad - (this.turbineOutput / 100) * this.maxPowerOutput, -this.maxPowerOutput / 100, this.maxPowerOutput / 100);
 			newLoad = Clamp(loadLeft - (expectedPower - output) + loadAdjust, 0, loadLeft);

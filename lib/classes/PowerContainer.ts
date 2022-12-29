@@ -140,7 +140,6 @@ export class PowerContainer extends Powered {
 
 	// Powered
 	protected GetCurrentPowerConsumption() {
-		// Don't draw power if fully charged
 		if (this.charge >= this.adjustedCapacity) {
 			this.charge = this.adjustedCapacity;
 			return 0;
@@ -160,21 +159,6 @@ export class PowerContainer extends Powered {
 		}
 	}
 
-	protected GridResolved(deltaTime: number) {
-		// Decrease charge based on how much power is leaving the device
-		this.charge = Clamp(this.charge - (this.currPowerOutput / 60) * deltaTime, 0, this.adjustedCapacity);
-		this.prevCharge = this.charge;
-
-		// Increase charge based on how much power came in from the grid
-		this.charge += ((this.currPowerConsumption * this.voltage) / 60) * deltaTime * this.efficiency;
-	}
-
-	protected GetPowerOut(load: number, power: number, minMaxPower: PowerRange, deltaTime: number) {
-		if (minMaxPower.Max <= 0) return 0;
-		// Set power output based on the relative max power output capabilities and load demand
-		return (this.currPowerOutput = Clamp((power - load) / minMaxPower.Max, 0, 1) * this.MinMaxPowerOut(load, deltaTime).Max);
-	}
-
 	protected MinMaxPowerOut(load: number, deltaTime: number) {
 		let maxOutput;
 		let chargeRatio = this.prevCharge / this.adjustedCapacity;
@@ -187,5 +171,20 @@ export class PowerContainer extends Powered {
 		// Limit max power out to not exceed the charge of the container
 		maxOutput = Math.min(maxOutput, (this.prevCharge * 60) / deltaTime);
 		return new PowerRange(0, maxOutput);
+	}
+
+	protected GetPowerOut(power: number, load: number, minMaxPower: PowerRange, deltaTime: number) {
+		if (minMaxPower.Max <= 0) return 0;
+		// Set power output based on the relative max power output capabilities and load demand
+		return (this.currPowerOutput = Clamp((load - power) / minMaxPower.Max, 0, 1) * this.MinMaxPowerOut(load, deltaTime).Max);
+	}
+
+	protected GridResolved(deltaTime: number) {
+		// Decrease charge based on how much power is leaving the device
+		this.charge = Clamp(this.charge - (this.currPowerOutput / 60) * deltaTime, 0, this.adjustedCapacity);
+		this.prevCharge = this.charge;
+
+		// Increase charge based on how much power came in from the grid
+		this.charge += ((this.currPowerConsumption * this.voltage) / 60) * deltaTime * this.efficiency;
 	}
 }

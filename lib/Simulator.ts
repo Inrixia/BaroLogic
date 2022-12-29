@@ -3,7 +3,6 @@ import { Simulated } from "./classes/Simulated";
 
 export enum SimStatus {
 	RealTime,
-	Timed,
 	Endless,
 	Stopped,
 }
@@ -14,7 +13,6 @@ export type SimInfo = {
 	tickRate: number;
 	time: number;
 	deltaTime: number;
-	simTime: number;
 };
 
 type SimulatorOpts =
@@ -24,7 +22,6 @@ type SimulatorOpts =
 			log?: (info: SimInfo) => void;
 			type: SimStatus.RealTime;
 			tickRate?: number;
-			simTime?: number;
 			simSpeed?: number;
 	  }
 	| {
@@ -33,16 +30,6 @@ type SimulatorOpts =
 			log?: (info: SimInfo) => void;
 			type: SimStatus.Endless;
 			tickRate?: number;
-			simTime?: number;
-			simSpeed?: number;
-	  }
-	| {
-			simulate: Simulated[];
-			logic?: (info: SimInfo) => SimStatus | void;
-			log?: (info: SimInfo) => void;
-			type: SimStatus.Timed;
-			tickRate?: number;
-			simTime: number;
 			simSpeed?: number;
 	  };
 
@@ -64,8 +51,7 @@ export class Simulator {
 		this.log = opts.log ?? (() => {});
 
 		this.tickRate = opts.tickRate ?? this.tickRate;
-		if (opts.type === SimStatus.Timed) this.simTime = opts.simTime;
-		if (opts.type === SimStatus.RealTime) this.simSpeed = opts.simSpeed ?? this.simSpeed;
+		this.simSpeed = opts.simSpeed ?? this.simSpeed;
 	}
 
 	private hrS(time?: [number, number]) {
@@ -103,13 +89,6 @@ export class Simulator {
 			switch (this.status) {
 				case SimStatus.RealTime: {
 					this.log(simInfo);
-					break;
-				}
-				case SimStatus.Timed: {
-					if (tick >= maxTicks) {
-						this.log(simInfo);
-						break mainLoop;
-					}
 					break;
 				}
 				case SimStatus.Stopped: {
