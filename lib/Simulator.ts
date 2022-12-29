@@ -17,26 +17,45 @@ export type SimInfo = {
 	simTime: number;
 };
 
-type SimulatorOpts = {
-	simulate: Simulated[];
-	logic?: (info: SimInfo) => SimStatus | void;
-	log?: (info: SimInfo) => void;
-	type: SimStatus;
-	tickRate: number;
-	simTime: number;
-	simSpeed: number;
-};
+type SimulatorOpts =
+	| {
+			simulate: Simulated[];
+			logic?: (info: SimInfo) => SimStatus | void;
+			log?: (info: SimInfo) => void;
+			type: SimStatus.RealTime;
+			tickRate?: number;
+			simTime?: number;
+			simSpeed?: number;
+	  }
+	| {
+			simulate: Simulated[];
+			logic?: (info: SimInfo) => SimStatus | void;
+			log?: (info: SimInfo) => void;
+			type: SimStatus.Endless;
+			tickRate?: number;
+			simTime?: number;
+			simSpeed?: number;
+	  }
+	| {
+			simulate: Simulated[];
+			logic?: (info: SimInfo) => SimStatus | void;
+			log?: (info: SimInfo) => void;
+			type: SimStatus.Timed;
+			tickRate?: number;
+			simTime: number;
+			simSpeed?: number;
+	  };
 
 export class Simulator {
-	private simulate: SimulatorOpts["simulate"];
-	private status: SimulatorOpts["type"];
-	private logic: Exclude<SimulatorOpts["logic"], undefined>;
-	private log: Exclude<SimulatorOpts["log"], undefined>;
+	private simulate: Simulated[];
+	private status: SimStatus;
+	private logic: (info: SimInfo) => SimStatus | void;
+	private log: (info: SimInfo) => SimStatus | void;
 
-	private tickRate: SimulatorOpts["tickRate"];
-	private simTime: SimulatorOpts["simTime"];
+	private tickRate: number = 20;
+	private simTime: number = 0;
 
-	private simSpeed: SimulatorOpts["simSpeed"];
+	private simSpeed: number = 1;
 
 	constructor(opts: SimulatorOpts) {
 		this.simulate = opts.simulate;
@@ -44,9 +63,9 @@ export class Simulator {
 		this.logic = opts.logic ?? (() => {});
 		this.log = opts.log ?? (() => {});
 
-		this.tickRate = opts.tickRate;
-		this.simTime = opts.simTime;
-		this.simSpeed = opts.simSpeed;
+		this.tickRate = opts.tickRate ?? this.tickRate;
+		if (opts.type === SimStatus.Timed) this.simTime = opts.simTime;
+		if (opts.type === SimStatus.RealTime) this.simSpeed = opts.simSpeed ?? this.simSpeed;
 	}
 
 	private hrS(time?: [number, number]) {
@@ -55,21 +74,21 @@ export class Simulator {
 	}
 
 	public async start() {
-		const staticDeltaTime = Simulated.DeltaTime(this.tickRate);
-		let deltaTime = staticDeltaTime;
+		const targetDelta = Simulated.DeltaTime(this.tickRate);
+		const maxTicks = this.simTime * this.tickRate;
+
+		let deltaTime = targetDelta;
 		let tick = 0;
 		let time = 0;
 
 		let lastTick = process.hrtime();
-		const targetDelta = 1 / this.tickRate;
 
-		const maxTicks = this.simTime * this.tickRate;
 		mainLoop: while (true) {
 			if (this.status === SimStatus.RealTime) {
 				if (this.hrS(lastTick) < targetDelta / this.simSpeed) continue;
 				deltaTime = this.hrS(lastTick) * this.simSpeed;
 				lastTick = process.hrtime();
-			} else deltaTime = staticDeltaTime;
+			} else deltaTime = targetDelta;
 			tick++;
 			time += deltaTime;
 
