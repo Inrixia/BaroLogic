@@ -80,7 +80,7 @@ export class Powered extends Simulated {
 	/**
 	 * Current power consumption of the device (or amount of generated power if negative)
 	 */
-	public GetCurrentPowerConsumption(deltaTime: number) {
+	protected GetCurrentPowerConsumption(deltaTime: number) {
 		if (!this.isActive) return 0;
 		// Otherwise return the max powerconsumption of the device
 		return this.powerConsumption;
@@ -91,7 +91,7 @@ export class Powered extends Simulated {
 	 * Minimum and maximum power the connection can provide
 	 * @param load Load of the connected grid
 	 */
-	public MinMaxPowerOut(load: number, deltaTime: number): PowerRange {
+	protected MinMaxPowerOut(load: number, deltaTime: number): PowerRange {
 		return PowerRange.Zero;
 	}
 
@@ -101,7 +101,7 @@ export class Powered extends Simulated {
 	 * @param load Current load on the grid
 	 * @returns Power pushed to the grid
 	 */
-	public GetPowerOut(power: number, load: number, minMaxPower: PowerRange, deltaTime: number): number {
+	protected GetPowerOut(power: number, load: number, minMaxPower: PowerRange, deltaTime: number): number {
 		return Math.max(-this.currPowerConsumption, 0);
 	}
 
@@ -146,5 +146,5 @@ export class Powered extends Simulated {
 		Powered.Grid.UpdateFaliures(deltaTime);
 	}
 
-	public GridResolved(deltaTime: number) {}
+	protected GridResolved(deltaTime: number) {}
 }

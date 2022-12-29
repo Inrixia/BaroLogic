@@ -8,22 +8,14 @@ import { LoadGenerator } from "./lib/classes/LoadGenerator";
 
 const reactor = new Reactor({
 	maxPowerOutput: 5200,
-	maxPowerOutputMultiplier: 1,
 	rods: [Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal), Rod(Rods.Normal, Quality.Normal)],
-	reactorMaxHealth: 100,
-	fireDelay: 20,
-	meltDownDelay: 120,
-	fuelConsumptionRate: 0.2,
-	playerDegreeOfSuccess: 0.5,
-	powerOn: true,
-	autoTemp: false,
 });
 
 const battery = new PowerContainer({
 	maxChargeMultiplier: 1,
-	maxCharge: 1000,
+	maxCharge: 10000,
 	charge: 0,
-	maxRechargeSpeed: 500,
+	maxRechargeSpeed: 10000,
 	exponentialRechargeSpeed: false,
 	maxOutPut: 1000,
 	efficiency: 0.95,

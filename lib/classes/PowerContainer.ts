@@ -12,6 +12,17 @@ type PowerContainerOpts = {
 	efficiency: number;
 };
 
+export const DefaultPowerContainer = () =>
+	new PowerContainer({
+		maxChargeMultiplier: 1,
+		maxCharge: 2000,
+		charge: 0,
+		maxRechargeSpeed: 500,
+		exponentialRechargeSpeed: false,
+		maxOutPut: 1000,
+		efficiency: 0.95,
+	});
+
 export class PowerContainer extends Powered {
 	/**
 	 * Maximum output of the device when fully charged (kW).
@@ -135,7 +146,7 @@ export class PowerContainer extends Powered {
 	}
 	// END Signals
 
-	public GetCurrentPowerConsumption() {
+	protected GetCurrentPowerConsumption() {
 		// Don't draw power if fully charged
 		if (this.charge >= this.adjustedCapacity) {
 			this.charge = this.adjustedCapacity;
@@ -160,7 +171,7 @@ export class PowerContainer extends Powered {
 		return this.currPowerConsumption * this.voltage * this.efficiency;
 	}
 
-	public GridResolved(deltaTime: number) {
+	protected GridResolved(deltaTime: number) {
 		// Decrease charge based on how much power is leaving the device
 		this.charge = Clamp(this.charge - (this.currPowerOutput / 60) * deltaTime, 0, this.adjustedCapacity);
 		this.prevCharge = this.charge;
@@ -169,13 +180,13 @@ export class PowerContainer extends Powered {
 		this.charge += ((this.currPowerConsumption * this.voltage) / 60) * deltaTime * this.efficiency;
 	}
 
-	public GetPowerOut(load: number, power: number, minMaxPower: PowerRange, deltaTime: number) {
+	protected GetPowerOut(load: number, power: number, minMaxPower: PowerRange, deltaTime: number) {
 		if (minMaxPower.Max <= 0) return 0;
 		// Set power output based on the relative max power output capabilities and load demand
 		return (this.currPowerOutput = Clamp((power - load) / minMaxPower.Max, 0, 1) * this.MinMaxPowerOut(load, deltaTime).Max);
 	}
 
-	public MinMaxPowerOut(load: number, deltaTime: number) {
+	protected MinMaxPowerOut(load: number, deltaTime: number) {
 		let maxOutput;
 		let chargeRatio = this.prevCharge / this.adjustedCapacity;
 		if (chargeRatio < 0.1) {
