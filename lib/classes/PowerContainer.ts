@@ -53,7 +53,7 @@ export class PowerContainer extends Powered {
 		this._maxCharge = Math.max(capacity, 1);
 		this.adjustedCapacity = this._maxCharge * this.maxChargeMultiplier;
 	}
-	private get maxCharge() {
+	public get maxCharge() {
 		return this._maxCharge;
 	}
 

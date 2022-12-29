@@ -29,6 +29,7 @@ export class Grid {
 
 			this.overloadCooldownTimer = this.overloadCooldown;
 
+			// Catches fire
 			if (Math.random() < Lerp(0.15, 0.15 * 0.1, 0.5)) this.Health = 0;
 
 			if (this.Health < 0) this.Health = 0;

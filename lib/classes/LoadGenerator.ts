@@ -5,11 +5,11 @@ export class LoadGenerator extends Powered {
 	public Load: number = 0;
 	public Power: number = 0;
 
-	public GetCurrentPowerConsumption(deltaTime: number): number {
+	protected GetCurrentPowerConsumption(deltaTime: number): number {
 		return this.Load;
 	}
 
-	public GetPowerOut(power: number, load: number, minMaxPower: PowerRange, deltaTime: number): number {
+	protected GetPowerOut(power: number, load: number, minMaxPower: PowerRange, deltaTime: number): number {
 		return this.Power;
 	}
 }
