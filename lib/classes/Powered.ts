@@ -140,9 +140,6 @@ export class Powered extends Simulated {
 		Powered.Grid.Voltage = 0;
 		Powered.Grid.Load = 0;
 		Powered.Grid.Power = 0;
-
-		const srcMinMax = PowerRange.Zero;
-
 		// Device consumed power
 		for (const powered of Powered.PoweredList) {
 			const currLoad = powered.GetCurrentPowerConsumption(deltaTime);
@@ -151,12 +148,14 @@ export class Powered extends Simulated {
 			Powered.Grid.Load += currLoad;
 		}
 
-		for (const powered of Powered.PoweredList) {
-			srcMinMax.Add(powered.MinMaxPowerOut(Powered.Grid.Load, deltaTime));
-		}
-
 		// Device produced power
 		for (const priorityList of Object.values(Powered.PoweredListByPriority)) {
+			const srcMinMax = PowerRange.Zero;
+
+			for (const powered of priorityList) {
+				srcMinMax.Add(powered.MinMaxPowerOut(Powered.Grid.Load, deltaTime));
+			}
+
 			let addPower = 0;
 			for (const powered of priorityList) {
 				addPower += powered.GetPowerOut(Powered.Grid.Power, Powered.Grid.Load, srcMinMax, deltaTime);

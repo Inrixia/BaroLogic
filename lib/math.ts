@@ -1,5 +1,5 @@
 export const Lerp = (a: number, b: number, amount: number) => a + (b - a) * amount;
-export const Clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+export const Clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
 export const adjustValueWithoutOverShooting = (current: number, target: number, speed: number) => (target < current ? Math.max(target, current - speed) : Math.min(target, current + speed));
 export const RoundTowardsClosest = (value: number, div: number) => Math.round(value / div) * div;
 export const NearlyEqual = (a: number, b: number, epsilon = 0.0001): boolean => {
