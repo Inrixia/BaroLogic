@@ -51,7 +51,7 @@ while (true) {
 		new LogHelper(() => maxSeenVoltage, { label: "Max Voltage", units: "V", noDelta: true }),
 		new LogHelper(({ tick }) => sumVoltage / tick, { label: "Avg Voltage", units: "V" }),
 		new LogHelper(() => minSeenVoltage, { label: "Min Voltage", units: "V", noDelta: true }),
-		new LogHelper(() => voltageBlips, { label: "Voltage Blips" }),
+		new LogHelper(() => voltageBlipsSum / voltageBlips, { label: "Avg Voltage Blip", units: "V" }),
 	]);
 	const logReducer = makeReducer({ reactor, batteries, loadGenerator, extras: [arcReducer], iterReducer });
 
@@ -63,6 +63,7 @@ while (true) {
 	let sumVoltage = 0;
 	let minSeenVoltage = Number.MAX_SAFE_INTEGER;
 	let voltageBlips = 0;
+	let voltageBlipsSum = 0;
 
 	let sumLoad = 0;
 
@@ -116,7 +117,10 @@ while (true) {
 		// if (b1.GetChargePercentage() <= 15) exit.push("b1.GetChargePrecentage() <= 15");
 		// if (b1.GetChargePercentage() >= 99) exit.push("b1.GetChargePrecentage() >= 99");
 		// if (rollingVoltage.min(Powered.Grid.Voltage) > 1.9) exit.push("Powered.Grid.Voltage > 2 for 2 ticks");
-		if (Powered.Grid.Voltage >= 2) voltageBlips++;
+		if (Powered.Grid.Voltage >= 2) {
+			voltageBlips++;
+			voltageBlipsSum += Powered.Grid.Voltage;
+		}
 
 		if (maxSeenVoltage < Powered.Grid.Voltage) maxSeenVoltage = Powered.Grid.Voltage;
 		if (maxSeenVoltage > 0 && minSeenVoltage > Powered.Grid.Voltage) minSeenVoltage = Powered.Grid.Voltage;
@@ -135,7 +139,7 @@ while (true) {
 				iterInfo.minSeenVoltage = Math.min(iterInfo.minSeenVoltage, minSeenVoltage);
 				iterInfo.ticks += simInfo.tick;
 				iterInfo.voltageSum += sumVoltage;
-				iterInfo.voltageBlipsSum += voltageBlips;
+				iterInfo.voltageBlipsSum += voltageBlipsSum / voltageBlips;
 			}
 			console.log(logReducer(simInfo));
 			console.log(`Sim End Reason: ${exit.join(", ")}`);
