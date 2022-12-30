@@ -7,7 +7,10 @@ import { LoadGenerator } from "./lib/classes/LoadGenerator";
 import { reduceHelpers, LogHelper, makeReducer, timeFormString } from "./lib/logging";
 import { Rolling } from "./lib/Rolling";
 
-let timeAliveSum = 0;
+let itrTimeAliveSum = 0;
+let itrVoltageSum = 0;
+let itrTicks = 0;
+let itrMaxSeenVoltage = 0;
 let iterations = 0;
 
 const iterate = false;
@@ -126,16 +129,21 @@ while (true) {
 			console.clear();
 
 			if (iterate) {
-				timeAliveSum += simInfo.time;
+				itrTimeAliveSum += simInfo.time;
+				itrMaxSeenVoltage = Math.max(itrMaxSeenVoltage, maxSeenVoltage);
+				itrTicks += simInfo.tick;
+				itrVoltageSum += sumVoltage;
 				console.log(`Exited after ${timeFormString(simInfo.time)} seconds.`);
-				console.log(`Avg Time Alive: ${timeFormString(timeAliveSum / ++iterations)}`);
-				console.log(`Iterations: ${iterations}`);
+				console.log(`Avg Time Alive: ${timeFormString(itrTimeAliveSum / ++iterations)}`);
+				console.log(`Max Seen Voltage: ${maxSeenVoltage.toFixed(2)}`);
+				console.log(`Avg Voltage: ${(itrVoltageSum / itrTicks).toFixed(2)}`);
+				console.log(`Iterations: ${iterations}, Ticks: ${itrTicks}, Time: ${timeFormString(itrTimeAliveSum)}`);
 			} else console.log(logReducer(simInfo));
 			console.log(`Reason: ${exit.join(", ")}`);
 			return SimStatus.Stopped;
 		}
 
-		loadGenerator.normalLoad(500, 6000, 2000);
+		loadGenerator.normalLoad(1000, 8000, 1000);
 
 		// Simulate someone repairing the grid occasionally
 		// if (simInfo.tick % (simInfo.tickRate * 60) === 0) Powered.Grid.Health = Powered.Grid.MaxHealth;
