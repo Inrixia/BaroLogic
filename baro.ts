@@ -14,6 +14,7 @@ const iterInfo: IterInfo = {
 	maxSeenVoltage: 0,
 	minSeenVoltage: Number.MAX_SAFE_INTEGER,
 	iterations: 0,
+	voltageBlipsSum: 0,
 };
 const iterReducer = IterReducer(iterInfo);
 
@@ -46,64 +47,54 @@ while (true) {
 	const arcReducer = LogHelper.ReduceHelpers([
 		LogHelper.Heading("[== ARC ==]"),
 		new LogHelper(() => load, { label: "System Load", units: "kW" }),
-		new LogHelper(() => batteryLoad, { label: "Battery Load", units: "kW" }),
-		new LogHelper(() => load + batteryLoad, { label: "Total Load", units: "kW" }),
 		new LogHelper(({ tick }) => sumLoad / tick, { label: "Average Load", units: "kW" }),
 		new LogHelper(() => maxSeenVoltage, { label: "Max Voltage", units: "V", noDelta: true }),
-		new LogHelper(({ tick }) => sumVoltage / tick, { label: "Avg Voltage", units: "V", noDelta: true }),
+		new LogHelper(({ tick }) => sumVoltage / tick, { label: "Avg Voltage", units: "V" }),
 		new LogHelper(() => minSeenVoltage, { label: "Min Voltage", units: "V", noDelta: true }),
+		new LogHelper(() => voltageBlips, { label: "Voltage Blips" }),
 	]);
 	const logReducer = makeReducer({ reactor, batteries, loadGenerator, extras: [arcReducer], iterReducer });
 
 	const b1 = batteries[0];
 	const efficiency = 75;
-	const batteryChargeUnits = 100 / b1.maxRechargeSpeed;
+	const batteryChargeUnits = 100 / b1.maxRechargeSpeed / batteries.length;
 
 	let maxSeenVoltage = 0;
 	let sumVoltage = 0;
 	let minSeenVoltage = Number.MAX_SAFE_INTEGER;
+	let voltageBlips = 0;
 
 	let sumLoad = 0;
 
 	const targetBatteryCharge = 50;
 
+	const reactorMaxPower = reactor.maxPowerOutput / 100;
+
 	let load = 0;
-	let batteryLoad = 0;
 	const ARCTick = () => {
-		if (maxSeenVoltage < Powered.Grid.Voltage) maxSeenVoltage = Powered.Grid.Voltage;
-		if (maxSeenVoltage > 0 && minSeenVoltage > Powered.Grid.Voltage) minSeenVoltage = Powered.Grid.Voltage;
-		sumVoltage += Powered.Grid.Voltage;
-		sumLoad += Powered.Grid.Load;
-
-		const realChargeRate = b1.GetChargePercentage() >= 100 ? 0 : b1.GetChargeRate();
-
-		// The current power the batteries are consuming from the grid
-		batteryLoad = (realChargeRate / batteryChargeUnits) * batteries.length;
-
-		// Amount of excess power on the grid
-		const current = Powered.Grid.Power - Powered.Grid.Load;
-
-		let batteryTargetChargeRate = (current / batteries.length) * batteryChargeUnits;
-
-		let reactorLoadOffset = 0;
-		// Batteries have too little charge, increase battery charge rate and reactor output
-		const distanceToTarget = b1.GetChargePercentage() / targetBatteryCharge;
-		if (distanceToTarget < 0.8) {
-			const targetChargeRate = (1 - distanceToTarget) * 100;
-			batteryTargetChargeRate = targetChargeRate;
-			reactorLoadOffset = (10 / batteryChargeUnits) * batteries.length;
-		}
+		// Reactor Controller
 
 		// Load the reactor sees and attempts to meet
-		load = Math.min(reactor.GetLoadValueOut() - batteryLoad - current, reactor.maxPowerOutput);
+		load = Math.min(reactor.GetLoadValueOut(), reactor.maxPowerOutput);
 
-		const turbineRate = (load + reactorLoadOffset) / (reactor.maxPowerOutput / 100);
-		const currentTurbineRate = reactor.GetPowerValueOut() / (reactor.maxPowerOutput / 100);
+		const turbineRate = load / reactorMaxPower;
+		const currentTurbineRate = reactor.GetPowerValueOut() / reactorMaxPower;
 		const bangBang = turbineRate < currentTurbineRate ? 0 : turbineRate === currentTurbineRate ? turbineRate : 100;
 		reactor.SetTurbineOutput(bangBang);
 
 		const fissionRate = turbineRate / (reactor.GetFuelOut() / efficiency);
 		reactor.SetFissionRate(fissionRate);
+
+		// Battery Controller
+
+		// Amount of excess power on the grid
+		const current = Powered.Grid.Power - Powered.Grid.Load;
+
+		const batteryGridChargeRate = current * batteryChargeUnits;
+		const batteryFillChargeRage = targetBatteryCharge - b1.GetChargePercentage();
+
+		// Batteries have too little charge, increase battery charge rate and reactor output
+		const batteryTargetChargeRate = Math.max(batteryFillChargeRage, batteryGridChargeRate);
 
 		// Increase the batteries charge rate to soak up extra power from the grid and keep voltage at target
 		setBatteryChargeRate(Math.max(roundToNearestTens(batteryTargetChargeRate, "Up"), 10));
@@ -125,6 +116,12 @@ while (true) {
 		// if (b1.GetChargePercentage() <= 15) exit.push("b1.GetChargePrecentage() <= 15");
 		// if (b1.GetChargePercentage() >= 99) exit.push("b1.GetChargePrecentage() >= 99");
 		// if (rollingVoltage.min(Powered.Grid.Voltage) > 1.9) exit.push("Powered.Grid.Voltage > 2 for 2 ticks");
+		if (Powered.Grid.Voltage >= 2) voltageBlips++;
+
+		if (maxSeenVoltage < Powered.Grid.Voltage) maxSeenVoltage = Powered.Grid.Voltage;
+		if (maxSeenVoltage > 0 && minSeenVoltage > Powered.Grid.Voltage) minSeenVoltage = Powered.Grid.Voltage;
+		sumVoltage += Powered.Grid.Voltage;
+		sumLoad += Powered.Grid.Load;
 
 		ARCTick();
 
@@ -138,6 +135,7 @@ while (true) {
 				iterInfo.minSeenVoltage = Math.min(iterInfo.minSeenVoltage, minSeenVoltage);
 				iterInfo.ticks += simInfo.tick;
 				iterInfo.voltageSum += sumVoltage;
+				iterInfo.voltageBlipsSum += voltageBlips;
 			}
 			console.log(logReducer(simInfo));
 			console.log(`Sim End Reason: ${exit.join(", ")}`);
@@ -171,7 +169,7 @@ while (true) {
 		logic,
 		type: SimStatus.Endless,
 		tickRate: 20,
-		simSpeed: 10,
+		simSpeed: 1,
 	}).start();
 
 	if (!iterate) break;

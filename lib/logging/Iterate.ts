@@ -8,6 +8,7 @@ export type IterInfo = {
 	minSeenVoltage: number;
 	ticks: number;
 	voltageSum: number;
+	voltageBlipsSum: number;
 };
 
 export const IterReducer = (itr: IterInfo) =>
@@ -17,6 +18,7 @@ export const IterReducer = (itr: IterInfo) =>
 		new LogHelper(() => itr.maxSeenVoltage, { label: "Max Seen Voltage", units: "v" }),
 		new LogHelper(() => itr.voltageSum / itr.ticks, { label: "Avg Voltage", units: "v" }),
 		new LogHelper(() => itr.minSeenVoltage, { label: "Min Seen Voltage", units: "v" }),
+		new LogHelper(() => itr.voltageBlipsSum / itr.iterations, { label: "Avg Voltage Blips" }),
 		LogHelper.ReduceHelpers(
 			[
 				new LogHelper(() => itr.iterations, { label: "Iterations", noDelta: true }),
