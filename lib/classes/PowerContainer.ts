@@ -98,6 +98,10 @@ export class PowerContainer extends Powered {
 		return this._efficiency;
 	}
 
+	public get realChargeSpeed() {
+		return this.currPowerConsumption * this.voltage * this.efficiency;
+	}
+
 	constructor(opts: PowerContainerOpts = {}) {
 		super(PowerPriority.Battery);
 
@@ -112,10 +116,6 @@ export class PowerContainer extends Powered {
 		this.isActive = true;
 	}
 
-	public getRealChargeSpeed() {
-		return this.currPowerConsumption * this.voltage * this.efficiency;
-	}
-
 	// Signals
 	public GetPowerValueOut(): number {
 		return this.currPowerOutput;
@@ -126,7 +126,7 @@ export class PowerContainer extends Powered {
 	public GetCharge(): number {
 		return this.charge;
 	}
-	public GetChargePrecentage(): number {
+	public GetChargePercentage(): number {
 		return (this.charge / this.adjustedCapacity) * 100;
 	}
 	public GetChargeRate(): number {

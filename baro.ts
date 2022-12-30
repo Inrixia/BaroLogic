@@ -3,38 +3,9 @@ import { Rod, Rods, Quality } from "./lib/classes/FuelRod";
 import { PowerContainer } from "./lib/classes/PowerContainer";
 import { SimInfo, SimStatus, Simulator } from "./lib/Simulator";
 import { Powered } from "./lib/classes/Powered";
-import { batteryText, gridText, reactorText } from "./lib/logging";
 import { LoadGenerator } from "./lib/classes/LoadGenerator";
 import { Clamp } from "./lib/math";
-
-const log = ({ tick, time, tickRate, deltaTime }: SimInfo) => {
-	console.clear();
-	const txt = `[== REACTOR ==]
-${reactorText(reactor, tickRate)}
-
-${batteries.reduce((acc, b, i) => `${acc}[== BATTERY ${i + 1} ==]\n${batteryText(b)}\n`, "")}
-
-[== LoadGen ==]
-Previous Load: ${previousLoad.toFixed(2)} kW
-Load: ${loadGenerator.Load.toFixed(2)} kW
-Power: ${loadGenerator.Power.toFixed(2)} kW
-
-[== ARC ==]
-Load: ${load.toFixed(2)} kW
-Battery Load: ${batteryLoad.toFixed(2)} kW
-
-Max Seen Voltage: ${maxSeenVoltage.toFixed(2)} V
-Avg Voltage: ${(sumVoltage / tick).toFixed(2)} V
-Min Seen Voltage: ${minSeenVoltage.toFixed(2)} V
-
-[== GRID ==]
-${gridText(tickRate)}
-
-[== SIM ==]
-Tick: ${tick}, Sec: ${time.toFixed(2)}s, DeltaTime: ${(deltaTime * 1000).toFixed(2)}ms`;
-
-	console.log(txt);
-};
+import { ReactorText, MultiBatteryText, GridText, reduceHelpers, LogHelper } from "./lib/logging";
 
 const reactor = new Reactor({
 	maxPowerOutput: 5200,
@@ -50,6 +21,48 @@ const reactor = new Reactor({
 
 const charge = 1000;
 const batteries = Array.apply(null, Array(5)).map(() => new PowerContainer({ charge }));
+
+const reactorText = ReactorText(reactor);
+const multiBatteryText = MultiBatteryText(batteries);
+const gridText = GridText();
+
+const logReducer = reduceHelpers([
+	LogHelper.Heading("[== REACTOR ==]"),
+	reactorText,
+	LogHelper.Newline,
+	LogHelper.Heading(`[== BATTERIES x${batteries.length} ==]`),
+	multiBatteryText,
+	LogHelper.Newline,
+	LogHelper.Heading("[== LoadGen ==]"),
+	new LogHelper(() => loadGenerator.Load, { label: "Load", units: "kW" }),
+	new LogHelper(() => loadGenerator.Power, { label: "Power", units: "kW" }),
+	LogHelper.Newline,
+	LogHelper.Heading("[== ARC ==]"),
+	new LogHelper(() => load, { label: "System Load", units: "kW" }),
+	new LogHelper(() => batteryLoad, { label: "Battery Load", units: "kW" }),
+	new LogHelper(() => load + batteryLoad, { label: "Total Load", units: "kW" }),
+	new LogHelper(() => maxSeenVoltage, { label: "Max Voltage", units: "V" }),
+	new LogHelper(({ tick }) => sumVoltage / tick, { label: "Avg Voltage", units: "V" }),
+	new LogHelper(() => minSeenVoltage, { label: "Min Voltage", units: "V" }),
+	LogHelper.Newline,
+	LogHelper.Heading("[== GRID ==]"),
+	gridText,
+	LogHelper.Newline,
+	LogHelper.Heading("[== SIM ==]"),
+	reduceHelpers(
+		[
+			new LogHelper(({ tick }) => tick, { label: "Tick", noDelta: true }),
+			new LogHelper(({ time }) => time, { label: "Time", units: "s", noDelta: true }),
+			new LogHelper(({ deltaTime }) => deltaTime * 1000, { label: "DeltaTime", units: "ms" }),
+		],
+		", "
+	),
+]);
+
+const log = (simInfo: SimInfo) => {
+	console.clear();
+	console.log(logReducer(simInfo));
+};
 
 const loadGenerator = new LoadGenerator();
 
@@ -76,15 +89,14 @@ const ARCTick = () => {
 
 	batteryLoad = (b1.GetChargeRate() / batteryChargeUnits) * batteries.length;
 	// Reactor
-	// load = Math.min((reactor.GetLoadValueOut() - batteryLoad) * desiredVoltage, reactor.maxPowerOutput);
-	load = Math.min(reactor.GetLoadValueOut(), reactor.maxPowerOutput);
+	load = Math.min((reactor.GetLoadValueOut() - batteryLoad) * desiredVoltage, reactor.maxPowerOutput);
 	const turbineRate = load / (reactor.maxPowerOutput / 100);
 	reactor.SetTurbineOutput(turbineRate);
 	reactor.SetFissionRate(turbineRate / (reactor.GetFuelOut() / efficiency));
 
 	// Batteries
-	if (b1.GetChargePrecentage() < 15) {
-		setBatteryChargeRate(100);
+	if (b1.GetChargePercentage() < 50 && Powered.Grid.Voltage >= 1) {
+		setBatteryChargeRate(b1.GetChargePercentage() + 10);
 		return;
 	}
 	const current = (Powered.Grid.Power - Powered.Grid.Load) / 2;
@@ -104,7 +116,7 @@ const logic = (simInfo: SimInfo) => {
 	if (reactor.GetFuelPercentageLeft() <= 0) exit.push("reactor.GetFuelPercentageLeft() <= 0");
 	if (reactor.melted) exit.push("reactor.melted");
 	if (Powered.Grid.Health <= 0) exit.push("Powered.Grid.Health <= 0");
-	if (b1.GetChargePrecentage() <= 15) exit.push("b1.GetChargePrecentage() <= 15");
+	if (b1.GetChargePercentage() <= 15) exit.push("b1.GetChargePrecentage() <= 15");
 	if (Powered.Grid.Voltage > 2) exit.push("Powered.Grid.Voltage > 2");
 
 	if (exit.length > 0) {
@@ -135,7 +147,7 @@ const normalLoad = () => {
 new Simulator({
 	simulate: Powered.PoweredList,
 	logic,
-	type: SimStatus.Endless,
+	type: SimStatus.RealTime,
 	tickRate: 20,
-	simSpeed: 0.1,
+	simSpeed: 1,
 }).start();

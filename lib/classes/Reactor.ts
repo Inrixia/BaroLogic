@@ -449,7 +449,7 @@ export class Reactor extends Powered {
 		if (this.temperatureHot) {
 			this.fireTimer += Lerp(deltaTime * 2, deltaTime, this.reactorHealth / this.reactorMaxHealth);
 			if (this.fireTimer >= this.fireDelay) {
-				this.onFire++;
+				this.onFire += deltaTime;
 				this.fireTimer = this.fireDelay;
 				this.reactorHealth -= deltaTime;
 			}
