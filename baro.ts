@@ -15,6 +15,7 @@ const iterInfo: IterInfo = {
 	minSeenVoltage: Number.MAX_SAFE_INTEGER,
 	iterations: 0,
 	voltageBlipsSum: 0,
+	voltageBlips: 0,
 };
 const iterReducer = IterReducer(iterInfo);
 
@@ -51,7 +52,8 @@ while (true) {
 		new LogHelper(() => maxSeenVoltage, { label: "Max Voltage", units: "V", noDelta: true }),
 		new LogHelper(({ tick }) => sumVoltage / tick, { label: "Avg Voltage", units: "V" }),
 		new LogHelper(() => minSeenVoltage, { label: "Min Voltage", units: "V", noDelta: true }),
-		new LogHelper(() => voltageBlipsSum / voltageBlips, { label: "Avg Voltage Blip", units: "V" }),
+		new LogHelper(() => voltageBlipsSum / voltageBlips || 0, { label: "Avg Voltage Blip", units: "V" }),
+		new LogHelper(() => voltageBlips, { label: "Voltage Blips", noDelta: true }),
 	]);
 	const logReducer = makeReducer({ reactor, batteries, loadGenerator, extras: [arcReducer], iterReducer });
 
@@ -72,7 +74,7 @@ while (true) {
 	const reactorMaxPower = reactor.maxPowerOutput / 100;
 
 	let load = 0;
-	const ARCTick = () => {
+	const ARCv2 = () => {
 		// Reactor Controller
 
 		// Load the reactor sees and attempts to meet
@@ -127,7 +129,7 @@ while (true) {
 		sumVoltage += Powered.Grid.Voltage;
 		sumLoad += Powered.Grid.Load;
 
-		ARCTick();
+		ARCv2();
 
 		if (exit.length > 0) {
 			console.clear();
@@ -140,6 +142,7 @@ while (true) {
 				iterInfo.ticks += simInfo.tick;
 				iterInfo.voltageSum += sumVoltage;
 				iterInfo.voltageBlipsSum += voltageBlipsSum / voltageBlips;
+				iterInfo.voltageBlips += voltageBlips;
 			}
 			console.log(logReducer(simInfo));
 			console.log(`Sim End Reason: ${exit.join(", ")}`);
@@ -149,7 +152,7 @@ while (true) {
 		const meanLoad = {
 			minLoad: 500,
 			maxLoad: b1.maxRechargeSpeed * batteries.length + reactor.maxPowerOutput,
-			maxLoadSpike: 200,
+			maxLoadSpike: 3000,
 			maxAvgLoad: b1.maxRechargeSpeed * batteries.length,
 			currentAvgLoad: sumLoad / simInfo.tick,
 		};
