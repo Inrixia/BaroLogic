@@ -4,7 +4,6 @@ import { LogHelper, reduceHelpers } from "./helpers";
 // Reactor
 export const ReactorText = (reactor: Reactor) => {
 	const helpers = [
-		new LogHelper(reactor.GetPowerValueOut.bind(reactor), { label: "Power Value Out", units: "kW" }),
 		new LogHelper(reactor.GetLoadValueOut.bind(reactor), { label: "Load Value Out", units: "kW" }),
 		new LogHelper(reactor.GetFuelOut.bind(reactor), { label: "Fuel Out", noDelta: true }),
 		new LogHelper(reactor.GetFuelPercentageLeft.bind(reactor), { label: "Fuel Percentage Left", units: "%", noDelta: true }),
@@ -17,7 +16,7 @@ export const ReactorText = (reactor: Reactor) => {
 		reduceHelpers([new LogHelper(() => reactor.fissionRate, { label: "Real", units: "%" }), new LogHelper(() => reactor.signalFissionRate, { label: "Signal", units: "%" })], ", ", "[Fission] - "),
 		LogHelper.Newline,
 		reduceHelpers(
-			reactor.rods.map((rod) => new LogHelper(() => (rod === null ? null : rod.durability / rod.maxDurability), { units: "%", noDelta: true })),
+			reactor.rods.map((rod) => new LogHelper(() => (rod === null ? null : (rod.durability / rod.maxDurability) * 100), { units: "%", noDelta: true })),
 			", ",
 			"[Rods] - "
 		),

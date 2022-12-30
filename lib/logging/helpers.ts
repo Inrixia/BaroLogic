@@ -5,20 +5,22 @@ export const txt = (previous: number, current: number, units: string) => `${curr
 type Value = number | boolean | null | string;
 type Generator = (simInfo: SimInfo) => Value;
 export class LogHelper {
-	generator: Generator;
-	units: string;
-	label: string;
-	noDelta: boolean;
+	private generator: Generator;
+	private units: string;
+	private label: string;
+	private noDelta: boolean;
 
-	previous?: Value;
+	private previous?: Value;
+
+	public static NoDelta = false;
 
 	private delta: string = "";
 	private current?: Value;
 	private updateCurrent(simInfo: SimInfo) {
 		this.current = this.generator(simInfo);
 		if (isNum(this.current)) {
-			if (this.noDelta) this.delta = "";
-			else if (isNum(this.previous)) this.delta = ` (${Math.sign(this.current - this.previous) > 0 ? "" : "+"}${(this.previous - this.current).toFixed(2)}${this.units})`;
+			if (this.noDelta || LogHelper.NoDelta) this.delta = "";
+			else if (isNum(this.previous)) this.delta = ` ${Math.sign(this.current - this.previous) >= 0 ? "+" : ""}${(this.current - this.previous).toFixed(2)}${this.units}`;
 			else this.delta = ` (${this.previous})`;
 		}
 	}
@@ -30,7 +32,7 @@ export class LogHelper {
 		this.noDelta = opts.noDelta ?? false;
 	}
 
-	txt(simInfo: SimInfo) {
+	public txt(simInfo: SimInfo) {
 		this.updateCurrent(simInfo);
 		let current = this.current;
 		if (isNum(current)) current = current.toFixed(2);

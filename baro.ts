@@ -26,6 +26,8 @@ const reactorText = ReactorText(reactor);
 const multiBatteryText = MultiBatteryText(batteries);
 const gridText = GridText();
 
+LogHelper.NoDelta = true;
+
 const logReducer = reduceHelpers([
 	LogHelper.Heading("[== REACTOR ==]"),
 	reactorText,
@@ -41,9 +43,9 @@ const logReducer = reduceHelpers([
 	new LogHelper(() => load, { label: "System Load", units: "kW" }),
 	new LogHelper(() => batteryLoad, { label: "Battery Load", units: "kW" }),
 	new LogHelper(() => load + batteryLoad, { label: "Total Load", units: "kW" }),
-	new LogHelper(() => maxSeenVoltage, { label: "Max Voltage", units: "V" }),
-	new LogHelper(({ tick }) => sumVoltage / tick, { label: "Avg Voltage", units: "V" }),
-	new LogHelper(() => minSeenVoltage, { label: "Min Voltage", units: "V" }),
+	new LogHelper(() => maxSeenVoltage, { label: "Max Voltage", units: "V", noDelta: true }),
+	new LogHelper(({ tick }) => sumVoltage / tick, { label: "Avg Voltage", units: "V", noDelta: true }),
+	new LogHelper(() => minSeenVoltage, { label: "Min Voltage", units: "V", noDelta: true }),
 	LogHelper.Newline,
 	LogHelper.Heading("[== GRID ==]"),
 	gridText,
