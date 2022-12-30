@@ -22,7 +22,7 @@ export const ReactorText = (reactor: Reactor) => {
 		),
 		LogHelper.Newline,
 		new LogHelper(() => reactor.temperatureCritical, { label: "Temperature Critical" }),
-		new LogHelper(() => reactor.meltDownDelay, { label: "Melted in", units: "s", noDelta: true }),
+		new LogHelper(() => reactor.meltDownTimer, { label: "Melted in", units: "s", noDelta: true }),
 		LogHelper.Newline,
 		new LogHelper(() => reactor.temperatureHot, { label: "Temperature Hot" }),
 		new LogHelper(() => reactor.fireDelay - reactor.fireTimer, { label: "Fire in", units: "s", noDelta: true }),

@@ -33,7 +33,7 @@ export const MultiBatteryText = (batteries: PowerContainer[]) => {
 		LogHelper.Newline,
 		new LogHelper(() => batteries.reduce((s, b) => s + b.GetChargeRate(), 0) / batteries.length, { units: "%", label: "Charge Rate" }),
 		LogHelper.Newline,
-		new LogHelper(() => batteries.reduce((s, b) => s + b.realChargeSpeed, 0), { units: "kW", label: "Real Charge Speed" }),
+		new LogHelper(() => batteries.reduce((s, b) => s + b.realChargeSpeed, 0), { units: "kW", label: "Real Load (Charge Rate)" }),
 	];
 	return reduceHelpers(helpers);
 };

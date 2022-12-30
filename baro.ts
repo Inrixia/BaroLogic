@@ -54,18 +54,13 @@ const logReducer = reduceHelpers([
 	reduceHelpers(
 		[
 			new LogHelper(({ tick }) => tick, { label: "Tick", noDelta: true }),
-			new LogHelper(({ time }) => time, { label: "Time", units: "s", noDelta: true }),
+			new LogHelper(({ time }) => (time / 60).toFixed(0), { label: "Time", units: "m", noDelta: true }),
+			new LogHelper(({ time }) => time % 60, { units: "s", noDelta: true }),
 			new LogHelper(({ deltaTime }) => deltaTime * 1000, { label: "DeltaTime", units: "ms" }),
 		],
 		", "
 	),
 ]);
-
-const log = (simInfo: SimInfo) => {
-	console.clear();
-	console.log(logReducer(simInfo));
-};
-
 const loadGenerator = new LoadGenerator();
 
 const b1 = batteries[0];
@@ -78,9 +73,12 @@ let maxSeenVoltage = 0;
 let sumVoltage = 0;
 let minSeenVoltage = 1;
 
-const desiredVoltage = 1;
+const targetVoltage = 1;
+const voltageSlip = 0.2;
 
 const maxExpectedSpike = 2000;
+
+const targetBatteryCharge = 50;
 
 let load = 0;
 let batteryLoad = 0;
@@ -89,62 +87,91 @@ const ARCTick = () => {
 	if (maxSeenVoltage > 0 && minSeenVoltage > Powered.Grid.Voltage) minSeenVoltage = Powered.Grid.Voltage;
 	sumVoltage += Powered.Grid.Voltage;
 
-	batteryLoad = (b1.GetChargeRate() / batteryChargeUnits) * batteries.length;
+	const realChargeRate = b1.GetChargePercentage() >= 100 ? 0 : b1.GetChargeRate();
+
+	batteryLoad = (realChargeRate / batteryChargeUnits) * batteries.length;
 	// Reactor
-	load = Math.min((reactor.GetLoadValueOut() - batteryLoad) * desiredVoltage, reactor.maxPowerOutput);
+	load = Math.min((reactor.GetLoadValueOut() - batteryLoad) * targetVoltage, reactor.maxPowerOutput);
+
 	const turbineRate = load / (reactor.maxPowerOutput / 100);
-	reactor.SetTurbineOutput(turbineRate);
-	reactor.SetFissionRate(turbineRate / (reactor.GetFuelOut() / efficiency));
+	const currentTurbineRate = reactor.GetPowerValueOut() / (reactor.maxPowerOutput / 100);
+	reactor.SetTurbineOutput(turbineRate < currentTurbineRate ? 0 : turbineRate === currentTurbineRate ? turbineRate : 100);
+
+	const fissionRate = turbineRate / (reactor.GetFuelOut() / efficiency);
+	reactor.SetFissionRate(fissionRate);
 
 	// Batteries
-	if (b1.GetChargePercentage() < 50 && Powered.Grid.Voltage >= 1) {
-		setBatteryChargeRate(b1.GetChargePercentage() + 10);
-		return;
+	if (Powered.Grid.Voltage > targetVoltage) {
+		const current = (Powered.Grid.Power - Powered.Grid.Load) / targetVoltage;
+		setBatteryChargeRate(roundToNearestTensUp((current / batteries.length) * batteryChargeUnits));
+	} else {
+		setBatteryChargeRate(roundToNearestTensDown(realChargeRate - 10));
 	}
-	const current = (Powered.Grid.Power - Powered.Grid.Load) / 2;
-	let desiredDistributedRate = (current / batteries.length) * batteryChargeUnits;
+};
 
-	if (desiredDistributedRate < b1.GetChargeRate()) {
-		desiredDistributedRate = b1.GetChargeRate() - 10;
-	}
+const roundToNearestTensUp = (num: number): number => {
+	if (num % 10 === 0) return num;
+	let nearestMultipleOf10 = Math.round(num / 10) * 10;
+	return nearestMultipleOf10 + 10;
+};
 
-	setBatteryChargeRate(desiredDistributedRate);
+const roundToNearestTensDown = (num: number): number => {
+	if (num % 10 === 0) return num;
+	let nearestMultipleOf10 = Math.round(num / 10) * 10;
+	return nearestMultipleOf10 - 10;
 };
 
 const setBatteryChargeRate = (rate: number) => batteries.map((b) => b.SetChargeRate(rate));
 
-const rollingVoltage = new Rolling(3);
+const rollingVoltage = new Rolling(2);
 const logic = (simInfo: SimInfo) => {
 	let exit = [];
 	if (reactor.GetFuelPercentageLeft() <= 0) exit.push("reactor.GetFuelPercentageLeft() <= 0");
 	if (reactor.melted) exit.push("reactor.melted");
 	if (Powered.Grid.Health <= 0) exit.push("Powered.Grid.Health <= 0");
 	if (b1.GetChargePercentage() <= 15) exit.push("b1.GetChargePrecentage() <= 15");
-	if (rollingVoltage.min(Powered.Grid.Voltage) > 2) exit.push("Powered.Grid.Voltage > 3 for 3 ticks");
+	if (b1.GetChargePercentage() >= 99) exit.push("b1.GetChargePrecentage() >= 99");
+	if (rollingVoltage.min(Powered.Grid.Voltage) > 2) exit.push("Powered.Grid.Voltage > 2 for 2 ticks");
+
+	ARCTick();
 
 	if (exit.length > 0) {
-		log(simInfo);
+		console.clear();
+		console.log(logReducer(simInfo));
 		console.log(`ENDED: ${exit}\n`);
 		return SimStatus.Stopped;
 	}
 
-	ARCTick();
-
 	normalLoad();
+	// loadGenerator.Load = 10000;
+
+	// Simulate someone repairing the grid occasionally
+	if (simInfo.tick % (simInfo.tickRate * 60 * 5) === 0) Powered.Grid.Health = Powered.Grid.MaxHealth;
 
 	// Only log every xs
 	const logEvery = simInfo.tick % 3 === 0;
-	if (simInfo.status === SimStatus.RealTime && logEvery) log(simInfo);
+	// reduce every tick to keep deltas up to date
+	const log = logReducer(simInfo);
+
+	if (simInfo.status === SimStatus.RealTime && logEvery) {
+		console.clear();
+		console.log(log);
+	}
+
+	// if (exit.length > 0) return SimStatus.RealTime;
 };
 
 const normalLoad = () => {
-	const loadLow = loadGenerator.Load <= 1000;
-	const loadHigh = loadGenerator.Load >= 10000;
+	const minLoad = 1000;
+	const maxLoad = 6000;
+
+	const loadLow = loadGenerator.Load <= minLoad + 100;
+	const loadHigh = loadGenerator.Load >= maxLoad - 100;
 
 	const sign = loadLow ? 1 : loadHigh ? -1 : Math.random() > 0.5 ? 1 : -1;
 
 	loadGenerator.Load += Math.random() * maxExpectedSpike * sign;
-	loadGenerator.Load = Clamp(loadGenerator.Load, 500, 10000);
+	loadGenerator.Load = Clamp(loadGenerator.Load, minLoad, maxLoad);
 };
 
 new Simulator({
