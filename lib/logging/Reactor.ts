@@ -1,10 +1,9 @@
 import { Reactor } from "../classes/Reactor";
-import { reduceHelpers } from "./helpers";
 import { LogHelper } from "./LogHelper";
 
 // Reactor
 export const ReactorReducer = (reactor: Reactor) =>
-	reduceHelpers([
+	LogHelper.ReduceHelpers([
 		LogHelper.Heading("[== REACTOR ==]"),
 		new LogHelper(reactor.GetPowerValueOut.bind(reactor), { label: "Power Out", units: "kW" }),
 		new LogHelper(reactor.GetFuelOut.bind(reactor), { label: "Fuel Out", noDelta: true }),
@@ -14,10 +13,18 @@ export const ReactorReducer = (reactor: Reactor) =>
 		new LogHelper(() => reactor.needMoreFuel, { label: "Need More Fuel" }),
 		new LogHelper(() => reactor.tooMuchFuel, { label: "Too Much Fuel" }),
 		LogHelper.Newline,
-		reduceHelpers([new LogHelper(() => reactor.turbineOutput, { label: "Real", units: "%" }), new LogHelper(() => reactor.signalTurbineOutput, { label: "Signal", units: "%" })], ", ", "[Turbine] - "),
-		reduceHelpers([new LogHelper(() => reactor.fissionRate, { label: "Real", units: "%" }), new LogHelper(() => reactor.signalFissionRate, { label: "Signal", units: "%" })], ", ", "[Fission] - "),
+		LogHelper.ReduceHelpers(
+			[new LogHelper(() => reactor.turbineOutput, { label: "Real", units: "%" }), new LogHelper(() => reactor.signalTurbineOutput, { label: "Signal", units: "%" })],
+			", ",
+			"[Turbine] - "
+		),
+		LogHelper.ReduceHelpers(
+			[new LogHelper(() => reactor.fissionRate, { label: "Real", units: "%" }), new LogHelper(() => reactor.signalFissionRate, { label: "Signal", units: "%" })],
+			", ",
+			"[Fission] - "
+		),
 		LogHelper.Newline,
-		reduceHelpers(
+		LogHelper.ReduceHelpers(
 			reactor.rods.map((rod) => new LogHelper(() => (rod === null ? null : (rod.durability / rod.maxDurability) * 100), { units: "%", noDelta: true })),
 			", ",
 			"[Rods] - "

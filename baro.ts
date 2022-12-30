@@ -4,16 +4,19 @@ import { PowerContainer } from "./lib/classes/PowerContainer";
 import { SimInfo, SimStatus, Simulator } from "./lib/Simulator";
 import { Powered } from "./lib/classes/Powered";
 import { LoadGenerator } from "./lib/classes/LoadGenerator";
-import { reduceHelpers, LogHelper, makeReducer, timeFormString } from "./lib/logging";
+import { LogHelper, makeReducer, IterInfo, IterReducer } from "./lib/logging";
 import { Rolling } from "./lib/Rolling";
 
-let itrTimeAliveSum = 0;
-let itrVoltageSum = 0;
-let itrTicks = 0;
-let itrMaxSeenVoltage = 0;
-let iterations = 0;
+const iterInfo: IterInfo = {
+	timeAliveSum: 0,
+	voltageSum: 0,
+	ticks: 0,
+	maxSeenVoltage: 0,
+	iterations: 0,
+};
+const iterReducer = IterReducer(iterInfo);
 
-const iterate = false;
+const iterate = true;
 
 while (true) {
 	// Reset Powered
@@ -39,7 +42,7 @@ while (true) {
 
 	// Setup logging
 	LogHelper.NoDelta = false;
-	const arcReducer = reduceHelpers([
+	const arcReducer = LogHelper.ReduceHelpers([
 		LogHelper.Heading("[== ARC ==]"),
 		new LogHelper(() => load, { label: "System Load", units: "kW" }),
 		new LogHelper(() => batteryLoad, { label: "Battery Load", units: "kW" }),
@@ -49,7 +52,7 @@ while (true) {
 		new LogHelper(({ tick }) => sumVoltage / tick, { label: "Avg Voltage", units: "V", noDelta: true }),
 		new LogHelper(() => minSeenVoltage, { label: "Min Voltage", units: "V", noDelta: true }),
 	]);
-	const logReducer = makeReducer({ reactor, batteries, loadGenerator, extras: [arcReducer] });
+	const logReducer = makeReducer({ reactor, batteries, loadGenerator, extras: [arcReducer], iterReducer });
 
 	const b1 = batteries[0];
 	const efficiency = 75;
@@ -135,16 +138,13 @@ while (true) {
 			console.clear();
 
 			if (iterate) {
-				itrTimeAliveSum += simInfo.time;
-				itrMaxSeenVoltage = Math.max(itrMaxSeenVoltage, maxSeenVoltage);
-				itrTicks += simInfo.tick;
-				itrVoltageSum += sumVoltage;
-				console.log(`Exited after ${timeFormString(simInfo.time)} seconds.`);
-				console.log(`Avg Time Alive: ${timeFormString(itrTimeAliveSum / ++iterations)}`);
-				console.log(`Max Seen Voltage: ${maxSeenVoltage.toFixed(2)}`);
-				console.log(`Avg Voltage: ${(itrVoltageSum / itrTicks).toFixed(2)}`);
-				console.log(`Iterations: ${iterations}, Ticks: ${itrTicks}, Time: ${timeFormString(itrTimeAliveSum)}`);
-			} else console.log(logReducer(simInfo));
+				iterInfo.iterations++;
+				iterInfo.timeAliveSum += simInfo.time;
+				iterInfo.maxSeenVoltage = Math.max(iterInfo.maxSeenVoltage, maxSeenVoltage);
+				iterInfo.ticks += simInfo.tick;
+				iterInfo.voltageSum += sumVoltage;
+			}
+			console.log(logReducer(simInfo));
 			console.log(`Reason: ${exit.join(", ")}`);
 			return SimStatus.Stopped;
 		}
@@ -160,18 +160,12 @@ while (true) {
 		// Simulate someone repairing the grid occasionally
 		// if (simInfo.tick % (simInfo.tickRate * 60) === 0) Powered.Grid.Health = Powered.Grid.MaxHealth;
 
-		// Only log every xs
-		const logEvery = simInfo.tick % 3 === 0;
 		// reduce every tick to keep deltas up to date
 
-		if (!iterate) {
-			const log = logReducer(simInfo);
-
-			if (simInfo.status === SimStatus.RealTime && logEvery) {
-				console.clear();
-				console.log(log);
-			}
-		}
+		if (simInfo.status === SimStatus.RealTime && simInfo.tick % 3 === 0) {
+			console.clear();
+			console.log(logReducer(simInfo));
+		} else if (!iterate) LogHelper.TickHelpers(simInfo);
 
 		// if (exit.length > 0) return SimStatus.RealTime;
 	};

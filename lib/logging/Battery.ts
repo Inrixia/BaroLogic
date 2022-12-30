@@ -1,9 +1,8 @@
 import { PowerContainer } from "../classes/PowerContainer";
-import { reduceHelpers } from "./helpers";
 import { LogHelper } from "./LogHelper";
 
 export const BatteryText = (battery: PowerContainer) =>
-	reduceHelpers([
+	LogHelper.ReduceHelpers([
 		new LogHelper(battery.GetPowerValueOut, { label: "Power Value Out", units: "kW" }),
 		new LogHelper(battery.GetCharge, { label: "Battery Charge", units: "kW" }),
 		new LogHelper(battery.GetChargePercentage, { label: "Charge Percentage", units: "%" }),
@@ -13,18 +12,18 @@ export const BatteryText = (battery: PowerContainer) =>
 	]);
 
 export const MultiBatteryReducer = (batteries: PowerContainer[]) =>
-	reduceHelpers([
+	LogHelper.ReduceHelpers([
 		LogHelper.Heading(`[== BATTERIES x${batteries.length} ==]`),
 		new LogHelper(() => batteries.reduce((s, b) => s + b.GetPowerValueOut(), 0), { label: "Power Value Out", units: "kW" }),
 		LogHelper.Newline,
-		reduceHelpers(
+		LogHelper.ReduceHelpers(
 			batteries.map((battery) => new LogHelper(battery.GetCharge.bind(battery), { units: "kW", noDelta: true })),
 			", ",
 			"Charge: "
 		),
 		new LogHelper(() => batteries.reduce((s, b) => s + b.GetCharge(), 0) / batteries.length, { label: "Charge (sum)", units: "kW" }),
 		LogHelper.Newline,
-		reduceHelpers(
+		LogHelper.ReduceHelpers(
 			batteries.map((battery) => new LogHelper(battery.GetChargePercentage.bind(battery), { units: "%", noDelta: true })),
 			", ",
 			"Charge Percentage: "

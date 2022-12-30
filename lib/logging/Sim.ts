@@ -1,9 +1,9 @@
-import { LogHelper, reduceHelpers } from ".";
+import { LogHelper } from ".";
 
 export const SimReducer = () =>
-	reduceHelpers([
+	LogHelper.ReduceHelpers([
 		LogHelper.Heading("[== SIM ==]"),
-		reduceHelpers(
+		LogHelper.ReduceHelpers(
 			[
 				new LogHelper(({ tick }) => tick, { label: "Tick", noDelta: true }),
 				new LogHelper(({ time }) => (time / 60).toFixed(0), { label: "Time", units: "m", noDelta: true }),

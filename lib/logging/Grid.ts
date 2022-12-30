@@ -1,9 +1,8 @@
 import { Powered } from "../classes/Powered";
-import { reduceHelpers } from "./helpers";
 import { LogHelper } from "./LogHelper";
 
 export const GridReducer = () =>
-	reduceHelpers([
+	LogHelper.ReduceHelpers([
 		LogHelper.Heading("[== GRID ==]"),
 		new LogHelper(() => Powered.Grid.Load, { label: "Load", units: "kW" }),
 		new LogHelper(() => Powered.Grid.Power, { label: "Power", units: "kW" }),
