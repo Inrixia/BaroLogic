@@ -64,8 +64,6 @@ while (true) {
 
 	let sumLoad = 0;
 
-	const targetVoltage = 1;
-
 	const targetBatteryCharge = 50;
 
 	let load = 0;
@@ -82,26 +80,21 @@ while (true) {
 		batteryLoad = (realChargeRate / batteryChargeUnits) * batteries.length;
 
 		// Amount of excess power on the grid
-		const current = (Powered.Grid.Power - Powered.Grid.Load) / targetVoltage;
+		const current = Powered.Grid.Power - Powered.Grid.Load;
 
 		let batteryTargetChargeRate = (current / batteries.length) * batteryChargeUnits;
 
-		let reactorTargetVoltage = targetVoltage;
 		let reactorLoadOffset = 0;
-		// Batteries have too much charge, reduce reactor output
-		if (b1.GetChargePercentage() >= targetBatteryCharge) {
-			reactorTargetVoltage *= 0.5;
-		}
 		// Batteries have too little charge, increase battery charge rate and reactor output
 		const distanceToTarget = b1.GetChargePercentage() / targetBatteryCharge;
 		if (distanceToTarget < 0.8) {
 			const targetChargeRate = (1 - distanceToTarget) * 100;
-			batteryTargetChargeRate += targetChargeRate;
-			reactorLoadOffset = (targetChargeRate / batteryChargeUnits) * batteries.length;
+			batteryTargetChargeRate = targetChargeRate;
+			reactorLoadOffset = (10 / batteryChargeUnits) * batteries.length;
 		}
 
 		// Load the reactor sees and attempts to meet
-		load = Math.min((reactor.GetLoadValueOut() - batteryLoad - current) * reactorTargetVoltage, reactor.maxPowerOutput);
+		load = Math.min(reactor.GetLoadValueOut() - batteryLoad - current, reactor.maxPowerOutput);
 
 		const turbineRate = (load + reactorLoadOffset) / (reactor.maxPowerOutput / 100);
 		const currentTurbineRate = reactor.GetPowerValueOut() / (reactor.maxPowerOutput / 100);
@@ -128,8 +121,8 @@ while (true) {
 		if (reactor.GetFuelPercentageLeft() <= 0) exit.push("reactor.GetFuelPercentageLeft() <= 0");
 		if (reactor.melted) exit.push("reactor.melted");
 		if (Powered.Grid.Health <= 0) exit.push("Powered.Grid.Health <= 0");
-		if (b1.GetChargePercentage() <= 15) exit.push("b1.GetChargePrecentage() <= 15");
-		if (b1.GetChargePercentage() >= 99) exit.push("b1.GetChargePrecentage() >= 99");
+		// if (b1.GetChargePercentage() <= 15) exit.push("b1.GetChargePrecentage() <= 15");
+		// if (b1.GetChargePercentage() >= 99) exit.push("b1.GetChargePrecentage() >= 99");
 		if (rollingVoltage.min(Powered.Grid.Voltage) > 1.9) exit.push("Powered.Grid.Voltage > 2 for 2 ticks");
 
 		ARCTick();
@@ -152,7 +145,7 @@ while (true) {
 		loadGenerator.normalLoad({
 			minLoad: 1000,
 			maxLoad: b1.maxOutPut * batteries.length + reactor.maxPowerOutput,
-			maxLoadSpike: b1.maxOutPut * batteries.length,
+			maxLoadSpike: b1.maxRechargeSpeed * batteries.length,
 			maxAvgLoad: 3000,
 			currentAvgLoad: sumLoad / simInfo.tick,
 		});
