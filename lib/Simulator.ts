@@ -13,6 +13,7 @@ export type SimInfo = {
 	tickRate: number;
 	time: number;
 	deltaTime: number;
+	status: SimStatus;
 };
 
 type SimulatorOpts =
@@ -37,7 +38,6 @@ export class Simulator {
 	private simulate: Simulated[];
 	private status: SimStatus;
 	private logic: (info: SimInfo) => SimStatus | void;
-	private log: (info: SimInfo) => SimStatus | void;
 
 	private tickRate: number = 20;
 	private simTime: number = 0;
@@ -48,7 +48,6 @@ export class Simulator {
 		this.simulate = opts.simulate;
 		this.status = opts.type;
 		this.logic = opts.logic ?? (() => {});
-		this.log = opts.log ?? (() => {});
 
 		this.tickRate = opts.tickRate ?? this.tickRate;
 		this.simSpeed = opts.simSpeed ?? this.simSpeed;
@@ -82,20 +81,11 @@ export class Simulator {
 
 			Powered.UpdatePower(deltaTime);
 
-			const simInfo = { time, tick, tickRate: this.tickRate, simTime: this.simTime, deltaTime, maxTicks };
+			const simInfo = { time, tick, tickRate: this.tickRate, simTime: this.simTime, deltaTime, maxTicks, status: this.status };
 
 			this.status = this.logic(simInfo) ?? this.status;
 
-			switch (this.status) {
-				case SimStatus.RealTime: {
-					this.log(simInfo);
-					break;
-				}
-				case SimStatus.Stopped: {
-					this.log(simInfo);
-					break mainLoop;
-				}
-			}
+			if (this.status === SimStatus.Stopped) break mainLoop;
 		}
 	}
 }

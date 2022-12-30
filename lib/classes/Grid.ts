@@ -1,7 +1,7 @@
 import { Lerp } from "../math";
 
 export class Grid {
-	public Voltage: number = 0;
+	public Voltage: number = 1;
 	public Load: number = 0;
 	public Power: number = 0;
 
