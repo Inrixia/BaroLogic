@@ -10,6 +10,7 @@ export class Grid {
 
 	public overloadCooldownTimer: number = 5;
 	public overloadCooldown: number = 5;
+
 	/**
 	 * How much power has to be supplied to the grid relative to the load before item starts taking damage.
 	 * E.g. a value of 2 means that the grid has to be receiving twice as much power as the devices in the grid are consuming.
@@ -30,7 +31,9 @@ export class Grid {
 			this.overloadCooldownTimer = this.overloadCooldown;
 
 			// Catches fire
-			if (Math.random() < Lerp(0.15, 0.15 * 0.1, 0.5)) this.Health = 0;
+			if (Math.random() < Lerp(0.15, 0.15 * 0.1, 0.5)) {
+				this.Health -= deltaTime * randRange(10, 500);
+			}
 
 			if (this.Health < 0) this.Health = 0;
 		}

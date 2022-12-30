@@ -1,9 +1,11 @@
 import { Reactor } from "../classes/Reactor";
-import { LogHelper, reduceHelpers } from "./helpers";
+import { reduceHelpers } from "./helpers";
+import { LogHelper } from "./LogHelper";
 
 // Reactor
-export const ReactorText = (reactor: Reactor) => {
-	const helpers = [
+export const ReactorReducer = (reactor: Reactor) =>
+	reduceHelpers([
+		LogHelper.Heading("[== REACTOR ==]"),
 		new LogHelper(reactor.GetPowerValueOut.bind(reactor), { label: "Power Out", units: "kW" }),
 		new LogHelper(reactor.GetFuelOut.bind(reactor), { label: "Fuel Out", noDelta: true }),
 		new LogHelper(reactor.GetFuelPercentageLeft.bind(reactor), { label: "Fuel Percentage Left", units: "%", noDelta: true }),
@@ -32,6 +34,4 @@ export const ReactorText = (reactor: Reactor) => {
 		LogHelper.Newline,
 		new LogHelper(() => reactor.melted, { label: "Melted" }),
 		new LogHelper(() => reactor.powerOn, { label: "Power On" }),
-	];
-	return reduceHelpers(helpers);
-};
+	]);

@@ -38,15 +38,19 @@ export class Powered extends Simulated {
 	 */
 	public static readonly PoweredList: Powered[] = [];
 
+	private static get DefaultPoweredListByPriority(): Record<PowerPriority, Powered[]> {
+		return {
+			[PowerPriority.Default]: [],
+			[PowerPriority.Reactor]: [],
+			[PowerPriority.Relay]: [],
+			[PowerPriority.Battery]: [],
+		};
+	}
+
 	/**
 	 * Arrays of all powered Devices by priority
 	 */
-	public static readonly PoweredListByPriority: Record<PowerPriority, Powered[]> = {
-		[PowerPriority.Default]: [],
-		[PowerPriority.Reactor]: [],
-		[PowerPriority.Relay]: [],
-		[PowerPriority.Battery]: [],
-	};
+	public static readonly PoweredListByPriority: Record<PowerPriority, Powered[]> = Powered.DefaultPoweredListByPriority;
 
 	/**
 	 * The grid to use for all Devices
@@ -90,6 +94,15 @@ export class Powered extends Simulated {
 		this.powerPriority = powerPriority;
 		Powered.PoweredList.push(this);
 		Powered.PoweredListByPriority[powerPriority].push(this);
+	}
+
+	public static Reset() {
+		// @ts-ignore Force overwrite readonly
+		Powered.PoweredList = [];
+		// @ts-ignore Force overwrite readonly
+		Powered.PoweredListByPriority = Powered.DefaultPoweredListByPriority;
+		// @ts-ignore Force overwrite readonly
+		Powered.Grid = new Grid();
 	}
 
 	/**

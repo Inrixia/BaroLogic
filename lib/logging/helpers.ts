@@ -1,85 +1,15 @@
 import { SimInfo } from "../Simulator";
+import { LogHelper } from "./LogHelper";
 
 export const txt = (previous: number, current: number, units: string) => `${current.toFixed(2)} ${units} (${Math.sign(current - previous) > 0 ? "-" : "+"}${(previous - current).toFixed(2)} ${units})`;
 
-type Value = number | boolean | null | string;
-type Generator = (simInfo: SimInfo) => Value;
-export class LogHelper {
-	private generator: Generator;
-	private units: string;
-	private label: string;
-	private noDelta: boolean;
-
-	private previous?: Value;
-
-	public static NoDelta = false;
-
-	private delta: string = "";
-	private current?: Value;
-	private updateCurrent(simInfo: SimInfo) {
-		this.current = this.generator(simInfo);
-		if (isNum(this.current)) {
-			if (this.noDelta || LogHelper.NoDelta) this.delta = "";
-			else if (isNum(this.previous)) this.delta = ` ${Math.sign(this.current - this.previous) >= 0 ? "+" : ""}${(this.current - this.previous).toFixed(2)}${this.units}`;
-			else this.delta = ` (${this.previous})`;
-		}
-	}
-
-	constructor(generator: Generator, opts: { label?: string; units?: string; noDelta?: true }) {
-		this.generator = generator;
-		this.units = opts.units ?? "";
-		this.label = opts.label !== undefined ? opts.label + ": " : "";
-		this.noDelta = opts.noDelta ?? false;
-	}
-
-	public txt(simInfo: SimInfo) {
-		this.updateCurrent(simInfo);
-		let current = this.current;
-		if (isNum(current)) current = current.toFixed(2);
-		const txt = `${this.label}${current}${this.units}${this.delta}`;
-		this.previous = this.current;
-		return txt;
-	}
-
-	static Newline: () => "" = () => "";
-	static Heading: (heading: string) => () => string = (heading) => () => heading;
-}
-
-const isNum = (value: unknown): value is number => typeof value === "number";
+export type Value = number | boolean | null | string;
+export type Generator = (simInfo: SimInfo) => Value;
+export const isNum = (value: unknown): value is number => typeof value === "number";
 
 const rnd = (value: number) => ~~(value * 100) / 100;
 
-export class Rolling {
-	values: number[] = [];
-
-	maxLength: number;
-
-	constructor(maxLength: number) {
-		this.maxLength = maxLength;
-	}
-
-	private addValue(value: number) {
-		this.values.push(value);
-		if (this.values.length > this.maxLength) this.values.shift();
-	}
-
-	avg(value: number) {
-		this.addValue(value);
-		return this.values.reduce((a, b) => a + b, 0) / this.values.length;
-	}
-
-	max(value: number) {
-		this.addValue(value);
-		return Math.max(...this.values);
-	}
-
-	min(value: number) {
-		this.addValue(value);
-		return Math.min(...this.values);
-	}
-}
-
-type Logger = ((simInfo: SimInfo) => string) | LogHelper;
+export type Logger = ((simInfo: SimInfo) => string) | LogHelper;
 
 export const reduceHelpers =
 	(helpers: Logger[], decimator: string = "\n", prefix: string = "") =>

@@ -1,20 +1,20 @@
 import { PowerContainer } from "../classes/PowerContainer";
-import { LogHelper, reduceHelpers } from "./helpers";
+import { reduceHelpers } from "./helpers";
+import { LogHelper } from "./LogHelper";
 
-export const BatteryText = (battery: PowerContainer) => {
-	const helpers = [
+export const BatteryText = (battery: PowerContainer) =>
+	reduceHelpers([
 		new LogHelper(battery.GetPowerValueOut, { label: "Power Value Out", units: "kW" }),
 		new LogHelper(battery.GetCharge, { label: "Battery Charge", units: "kW" }),
 		new LogHelper(battery.GetChargePercentage, { label: "Charge Percentage", units: "%" }),
 		new LogHelper(battery.GetChargeRate, { label: "Charge Rate", units: "%" }),
 		LogHelper.Newline,
 		new LogHelper(() => battery.realChargeSpeed, { label: "Real Charge Speed", units: "kW" }),
-	];
-	return reduceHelpers(helpers);
-};
+	]);
 
-export const MultiBatteryText = (batteries: PowerContainer[]) => {
-	const helpers = [
+export const MultiBatteryReducer = (batteries: PowerContainer[]) =>
+	reduceHelpers([
+		LogHelper.Heading(`[== BATTERIES x${batteries.length} ==]`),
 		new LogHelper(() => batteries.reduce((s, b) => s + b.GetPowerValueOut(), 0), { label: "Power Value Out", units: "kW" }),
 		LogHelper.Newline,
 		reduceHelpers(
@@ -34,6 +34,4 @@ export const MultiBatteryText = (batteries: PowerContainer[]) => {
 		new LogHelper(() => batteries.reduce((s, b) => s + b.GetChargeRate(), 0) / batteries.length, { units: "%", label: "Charge Rate" }),
 		LogHelper.Newline,
 		new LogHelper(() => batteries.reduce((s, b) => s + b.realChargeSpeed, 0), { units: "kW", label: "Real Load (Charge Rate)" }),
-	];
-	return reduceHelpers(helpers);
-};
+	]);
