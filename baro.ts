@@ -5,7 +5,7 @@ import { SimInfo, SimStatus, Simulator } from "./lib/Simulator";
 import { Powered } from "./lib/classes/Powered";
 import { LoadGenerator } from "./lib/classes/LoadGenerator";
 import { Clamp } from "./lib/math";
-import { ReactorText, MultiBatteryText, GridText, reduceHelpers, LogHelper } from "./lib/logging";
+import { ReactorText, MultiBatteryText, GridText, reduceHelpers, LogHelper, Rolling } from "./lib/logging";
 
 const reactor = new Reactor({
 	maxPowerOutput: 5200,
@@ -113,13 +113,14 @@ const ARCTick = () => {
 
 const setBatteryChargeRate = (rate: number) => batteries.map((b) => b.SetChargeRate(rate));
 
+const rollingVoltage = new Rolling(3);
 const logic = (simInfo: SimInfo) => {
 	let exit = [];
 	if (reactor.GetFuelPercentageLeft() <= 0) exit.push("reactor.GetFuelPercentageLeft() <= 0");
 	if (reactor.melted) exit.push("reactor.melted");
 	if (Powered.Grid.Health <= 0) exit.push("Powered.Grid.Health <= 0");
 	if (b1.GetChargePercentage() <= 15) exit.push("b1.GetChargePrecentage() <= 15");
-	if (Powered.Grid.Voltage > 2) exit.push("Powered.Grid.Voltage > 3");
+	if (rollingVoltage.min(Powered.Grid.Voltage) > 2) exit.push("Powered.Grid.Voltage > 3 for 3 ticks");
 
 	if (exit.length > 0) {
 		log(simInfo);
@@ -136,9 +137,7 @@ const logic = (simInfo: SimInfo) => {
 	if (simInfo.status === SimStatus.RealTime && logEvery) log(simInfo);
 };
 
-let previousLoad = 0;
 const normalLoad = () => {
-	previousLoad = loadGenerator.Load;
 	const loadLow = loadGenerator.Load <= 1000;
 	const loadHigh = loadGenerator.Load >= 10000;
 
@@ -151,7 +150,7 @@ const normalLoad = () => {
 new Simulator({
 	simulate: Powered.PoweredList,
 	logic,
-	type: SimStatus.RealTime,
+	type: SimStatus.Endless,
 	tickRate: 20,
 	simSpeed: 1,
 }).start();

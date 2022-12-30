@@ -49,6 +49,36 @@ const isNum = (value: unknown): value is number => typeof value === "number";
 
 const rnd = (value: number) => ~~(value * 100) / 100;
 
+export class Rolling {
+	values: number[] = [];
+
+	maxLength: number;
+
+	constructor(maxLength: number) {
+		this.maxLength = maxLength;
+	}
+
+	private addValue(value: number) {
+		this.values.push(value);
+		if (this.values.length > this.maxLength) this.values.shift();
+	}
+
+	avg(value: number) {
+		this.addValue(value);
+		return this.values.reduce((a, b) => a + b, 0) / this.values.length;
+	}
+
+	max(value: number) {
+		this.addValue(value);
+		return Math.max(...this.values);
+	}
+
+	min(value: number) {
+		this.addValue(value);
+		return Math.min(...this.values);
+	}
+}
+
 type Logger = ((simInfo: SimInfo) => string) | LogHelper;
 
 export const reduceHelpers =

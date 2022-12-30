@@ -4,7 +4,7 @@ import { LogHelper, reduceHelpers } from "./helpers";
 // Reactor
 export const ReactorText = (reactor: Reactor) => {
 	const helpers = [
-		new LogHelper(reactor.GetLoadValueOut.bind(reactor), { label: "Load Value Out", units: "kW" }),
+		new LogHelper(reactor.GetPowerValueOut.bind(reactor), { label: "Power Out", units: "kW" }),
 		new LogHelper(reactor.GetFuelOut.bind(reactor), { label: "Fuel Out", noDelta: true }),
 		new LogHelper(reactor.GetFuelPercentageLeft.bind(reactor), { label: "Fuel Percentage Left", units: "%", noDelta: true }),
 		new LogHelper(() => reactor.GetTemperatureOut() / 100, { label: "Temperature", units: "%" }),
