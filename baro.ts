@@ -12,6 +12,7 @@ const iterInfo: IterInfo = {
 	voltageSum: 0,
 	ticks: 0,
 	maxSeenVoltage: 0,
+	minSeenVoltage: Number.MAX_SAFE_INTEGER,
 	iterations: 0,
 };
 const iterReducer = IterReducer(iterInfo);
@@ -60,7 +61,7 @@ while (true) {
 
 	let maxSeenVoltage = 0;
 	let sumVoltage = 0;
-	let minSeenVoltage = 1;
+	let minSeenVoltage = Number.MAX_SAFE_INTEGER;
 
 	let sumLoad = 0;
 
@@ -123,7 +124,7 @@ while (true) {
 		if (Powered.Grid.Health <= 0) exit.push("Powered.Grid.Health <= 0");
 		// if (b1.GetChargePercentage() <= 15) exit.push("b1.GetChargePrecentage() <= 15");
 		// if (b1.GetChargePercentage() >= 99) exit.push("b1.GetChargePrecentage() >= 99");
-		if (rollingVoltage.min(Powered.Grid.Voltage) > 1.9) exit.push("Powered.Grid.Voltage > 2 for 2 ticks");
+		// if (rollingVoltage.min(Powered.Grid.Voltage) > 1.9) exit.push("Powered.Grid.Voltage > 2 for 2 ticks");
 
 		ARCTick();
 
@@ -134,25 +135,27 @@ while (true) {
 				iterInfo.iterations++;
 				iterInfo.timeAliveSum += simInfo.time;
 				iterInfo.maxSeenVoltage = Math.max(iterInfo.maxSeenVoltage, maxSeenVoltage);
+				iterInfo.minSeenVoltage = Math.min(iterInfo.minSeenVoltage, minSeenVoltage);
 				iterInfo.ticks += simInfo.tick;
 				iterInfo.voltageSum += sumVoltage;
 			}
 			console.log(logReducer(simInfo));
-			console.log(`Reason: ${exit.join(", ")}`);
+			console.log(`Sim End Reason: ${exit.join(", ")}`);
 			return SimStatus.Stopped;
 		}
 
-		loadGenerator.normalLoad({
-			minLoad: 1000,
-			maxLoad: b1.maxOutPut * batteries.length + reactor.maxPowerOutput,
-			maxLoadSpike: b1.maxRechargeSpeed * batteries.length,
-			maxAvgLoad: 3000,
+		const meanLoad = {
+			minLoad: 500,
+			maxLoad: b1.maxRechargeSpeed * batteries.length + reactor.maxPowerOutput,
+			maxLoadSpike: 200,
+			maxAvgLoad: b1.maxRechargeSpeed * batteries.length,
 			currentAvgLoad: sumLoad / simInfo.tick,
-		});
+		};
+
+		loadGenerator.normalLoad(meanLoad);
 
 		// Simulate someone repairing the grid occasionally
-		// if (simInfo.tick % (simInfo.tickRate * 60) === 0) Powered.Grid.Health = Powered.Grid.MaxHealth;
-
+		// if (simInfo.tick % (simInfo.tickRate * 60 * 15) === 0) Powered.Grid.Health = Powered.Grid.MaxHealth;
 		// reduce every tick to keep deltas up to date
 
 		if (simInfo.status === SimStatus.RealTime && simInfo.tick % 3 === 0) {
