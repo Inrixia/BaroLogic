@@ -27,4 +27,11 @@ export class LoadGenerator extends Powered {
 		// If the average load value exceeds the max average load, reduce the load value by the maximum allowed change
 		if (currentAvgLoad > maxAvgLoad) this.Load = Math.max(minLoad, this.Load - Math.random() * maxLoadSpike);
 	}
+
+	// Generate a load that slowly occilates between min and max
+	public sineLoad(minLoad: number, maxLoad: number, tick: number, frequency: number = 1) {
+		const loadRange = maxLoad - minLoad;
+		const halfRange = loadRange / 2;
+		this.Load = minLoad + halfRange + Math.sin((tick / 100) * frequency) * halfRange;
+	}
 }
