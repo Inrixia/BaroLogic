@@ -16,7 +16,7 @@ export class PowerContainer extends Powered {
 	/**
 	 * Maximum output of the device when fully charged (kW).
 	 */
-	private maxOutPut: number = 1000;
+	public maxOutPut: number = 1000;
 
 	/**
 	 * Capacity Multiplier from Talents
@@ -94,7 +94,7 @@ export class PowerContainer extends Powered {
 	private set efficiency(efficiency: number) {
 		this._efficiency = Clamp(efficiency, 0, 1);
 	}
-	private get efficiency() {
+	public get efficiency() {
 		return this._efficiency;
 	}
 

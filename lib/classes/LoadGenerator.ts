@@ -1,6 +1,7 @@
 import { Clamp } from "../math";
 import { Powered } from "./Powered";
 
+type NormalOpts = { minLoad: number; maxLoad: number; maxAvgLoad: number; maxLoadSpike: number; currentAvgLoad: number };
 export class LoadGenerator extends Powered {
 	public Load: number = 0;
 	public Power: number = 0;
@@ -13,13 +14,17 @@ export class LoadGenerator extends Powered {
 		return this.Power;
 	}
 
-	public normalLoad(minLoad: number, maxLoad: number, maxLoadSpike: number): void {
-		const loadLow = this.Load <= minLoad + 100;
-		const loadHigh = this.Load >= maxLoad - 100;
+	public normalLoad({ minLoad, maxLoad, maxAvgLoad, maxLoadSpike, currentAvgLoad }: NormalOpts): void {
+		// Generate a random change in load between -maxChange and maxChange
+		const change = (Math.random() * 2 - 1) * maxLoadSpike;
 
-		const sign = loadLow ? 1 : loadHigh ? -1 : Math.random() > 0.5 ? 1 : -1;
+		// Calculate the new load value by adding the change to the previous load value
+		this.Load += change;
 
-		this.Load += Math.random() * maxLoadSpike * sign;
+		// Ensure that the load value stays within the specified range
 		this.Load = Clamp(this.Load, minLoad, maxLoad);
+
+		// If the average load value exceeds the max average load, reduce the load value by the maximum allowed change
+		if (currentAvgLoad > maxAvgLoad) this.Load = Math.max(minLoad, this.Load - Math.random() * maxLoadSpike);
 	}
 }

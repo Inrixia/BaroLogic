@@ -44,6 +44,7 @@ while (true) {
 		new LogHelper(() => load, { label: "System Load", units: "kW" }),
 		new LogHelper(() => batteryLoad, { label: "Battery Load", units: "kW" }),
 		new LogHelper(() => load + batteryLoad, { label: "Total Load", units: "kW" }),
+		new LogHelper(({ tick }) => sumLoad / tick, { label: "Average Load", units: "kW" }),
 		new LogHelper(() => maxSeenVoltage, { label: "Max Voltage", units: "V", noDelta: true }),
 		new LogHelper(({ tick }) => sumVoltage / tick, { label: "Avg Voltage", units: "V", noDelta: true }),
 		new LogHelper(() => minSeenVoltage, { label: "Min Voltage", units: "V", noDelta: true }),
@@ -58,6 +59,8 @@ while (true) {
 	let sumVoltage = 0;
 	let minSeenVoltage = 1;
 
+	let sumLoad = 0;
+
 	const targetVoltage = 1;
 
 	const targetBatteryCharge = 50;
@@ -68,6 +71,7 @@ while (true) {
 		if (maxSeenVoltage < Powered.Grid.Voltage) maxSeenVoltage = Powered.Grid.Voltage;
 		if (maxSeenVoltage > 0 && minSeenVoltage > Powered.Grid.Voltage) minSeenVoltage = Powered.Grid.Voltage;
 		sumVoltage += Powered.Grid.Voltage;
+		sumLoad += Powered.Grid.Load;
 
 		const realChargeRate = b1.GetChargePercentage() >= 100 ? 0 : b1.GetChargeRate();
 
@@ -86,9 +90,11 @@ while (true) {
 			reactorTargetVoltage *= 0.5;
 		}
 		// Batteries have too little charge, increase battery charge rate and reactor output
-		if (b1.GetChargePercentage() < targetBatteryCharge) {
-			batteryTargetChargeRate += 10;
-			reactorLoadOffset = batteryChargeUnits * 100 * batteries.length;
+		const distanceToTarget = b1.GetChargePercentage() / targetBatteryCharge;
+		if (distanceToTarget < 0.8) {
+			const targetChargeRate = (1 - distanceToTarget) * 100;
+			batteryTargetChargeRate += targetChargeRate;
+			reactorLoadOffset = (targetChargeRate / batteryChargeUnits) * batteries.length;
 		}
 
 		// Load the reactor sees and attempts to meet
@@ -103,7 +109,7 @@ while (true) {
 		reactor.SetFissionRate(fissionRate);
 
 		// Increase the batteries charge rate to soak up extra power from the grid and keep voltage at target
-		setBatteryChargeRate(roundToNearestTens(batteryTargetChargeRate, "Up"));
+		setBatteryChargeRate(Math.max(roundToNearestTens(batteryTargetChargeRate, "Up"), 10));
 	};
 
 	// Battery helpers;
@@ -143,7 +149,13 @@ while (true) {
 			return SimStatus.Stopped;
 		}
 
-		loadGenerator.normalLoad(1000, 8000, 1000);
+		loadGenerator.normalLoad({
+			minLoad: 1000,
+			maxLoad: b1.maxOutPut * batteries.length + reactor.maxPowerOutput,
+			maxLoadSpike: b1.maxOutPut * batteries.length,
+			maxAvgLoad: 3000,
+			currentAvgLoad: sumLoad / simInfo.tick,
+		});
 
 		// Simulate someone repairing the grid occasionally
 		// if (simInfo.tick % (simInfo.tickRate * 60) === 0) Powered.Grid.Health = Powered.Grid.MaxHealth;

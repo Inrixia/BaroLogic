@@ -4,6 +4,7 @@ import { LogHelper } from "./LogHelper";
 
 export const GridReducer = () =>
 	reduceHelpers([
+		LogHelper.Heading("[== GRID ==]"),
 		new LogHelper(() => Powered.Grid.Load, { label: "Load", units: "kW" }),
 		new LogHelper(() => Powered.Grid.Power, { label: "Power", units: "kW" }),
 		LogHelper.Newline,
