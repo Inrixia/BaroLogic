@@ -26,7 +26,7 @@ const reactorText = ReactorText(reactor);
 const multiBatteryText = MultiBatteryText(batteries);
 const gridText = GridText();
 
-LogHelper.NoDelta = true;
+LogHelper.NoDelta = false;
 
 const logReducer = reduceHelpers([
 	LogHelper.Heading("[== REACTOR ==]"),
@@ -78,7 +78,7 @@ let maxSeenVoltage = 0;
 let sumVoltage = 0;
 let minSeenVoltage = 1;
 
-const desiredVoltage = 2;
+const desiredVoltage = 1;
 
 const maxExpectedSpike = 2000;
 
@@ -119,7 +119,7 @@ const logic = (simInfo: SimInfo) => {
 	if (reactor.melted) exit.push("reactor.melted");
 	if (Powered.Grid.Health <= 0) exit.push("Powered.Grid.Health <= 0");
 	if (b1.GetChargePercentage() <= 15) exit.push("b1.GetChargePrecentage() <= 15");
-	if (Powered.Grid.Voltage > 2) exit.push("Powered.Grid.Voltage > 2");
+	if (Powered.Grid.Voltage > 2) exit.push("Powered.Grid.Voltage > 3");
 
 	if (exit.length > 0) {
 		log(simInfo);
@@ -131,7 +131,9 @@ const logic = (simInfo: SimInfo) => {
 
 	normalLoad();
 
-	if (simInfo.status === SimStatus.RealTime) log(simInfo);
+	// Only log every xs
+	const logEvery = simInfo.tick % 3 === 0;
+	if (simInfo.status === SimStatus.RealTime && logEvery) log(simInfo);
 };
 
 let previousLoad = 0;

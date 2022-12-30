@@ -7,7 +7,7 @@ export const ReactorText = (reactor: Reactor) => {
 		new LogHelper(reactor.GetLoadValueOut.bind(reactor), { label: "Load Value Out", units: "kW" }),
 		new LogHelper(reactor.GetFuelOut.bind(reactor), { label: "Fuel Out", noDelta: true }),
 		new LogHelper(reactor.GetFuelPercentageLeft.bind(reactor), { label: "Fuel Percentage Left", units: "%", noDelta: true }),
-		new LogHelper(reactor.GetTemperatureOut.bind(reactor), { label: "Temperature" }),
+		new LogHelper(() => reactor.GetTemperatureOut() / 100, { label: "Temperature", units: "%" }),
 		LogHelper.Newline,
 		new LogHelper(() => reactor.needMoreFuel, { label: "Need More Fuel" }),
 		new LogHelper(() => reactor.tooMuchFuel, { label: "Too Much Fuel" }),
