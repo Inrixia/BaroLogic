@@ -35,7 +35,6 @@ while (true) {
 			Rod(Rods.VolatileFulgurium, Quality.Masterwork),
 		],
 		powerOn: true,
-		autoTemp: true,
 	});
 
 	const batteries = Array.apply(null, Array(5)).map(() => new PowerContainer({ charge: 1000 }));
@@ -55,11 +54,14 @@ while (true) {
 		new LogHelper(() => minSeenVoltage, { label: "Min Voltage", units: "V", noDelta: true }),
 		new LogHelper(() => voltageBlipsSum / voltageBlips || 0, { label: "Avg Voltage Blip", units: "V" }),
 		new LogHelper(() => voltageBlips, { label: "Voltage Blips", noDelta: true }),
+		LogHelper.Newline,
+		new LogHelper(() => realFission, { label: "Real Fission?", noDelta: true }),
 	]);
 	const logReducer = makeReducer({ reactor, batteries, loadGenerators: [loadGenerator, sineGenerator], extras: [arcReducer], iterReducer: iterate ? iterReducer : undefined });
 
 	const b1 = batteries[0];
 	const efficiency = 75;
+	const efficiency2v = 75;
 	const batteryChargeUnits = 100 / b1.maxRechargeSpeed / batteries.length;
 
 	let maxSeenVoltage = 0;
@@ -68,14 +70,57 @@ while (true) {
 	let voltageBlips = 0;
 	let voltageBlipsSum = 0;
 
+	let realFission = "";
+
 	let sumLoad = 0;
 
 	const targetBatteryCharge = 50;
 
 	const reactorMaxPower = reactor.maxPowerOutput / 100;
 
+	const targetVoltage = 1.95;
+
 	let load = 0;
+	const ARCv3 = (simInfo: SimInfo) => {
+		reactor.autoTemp = false;
+		// Reactor Controller
+
+		// The current power the batteries are consuming from the grid
+		const batteryLoad = b1.GetChargeRate() / batteryChargeUnits;
+
+		// Load the reactor sees and attempts to meet
+		load = Math.min(Powered.Grid.Load - batteryLoad, reactor.maxPowerOutput);
+
+		const turbineRate = (load * targetVoltage) / reactorMaxPower;
+		const currentTurbineRate = reactor.GetPowerValueOut() / reactorMaxPower;
+		const bangBang = turbineRate < currentTurbineRate ? 0 : 100;
+		reactor.SetTurbineOutput(bangBang);
+
+		const fissionRate = bangBang / (reactor.GetFuelOut() / efficiency2v);
+		reactor.SetFissionRate(fissionRate);
+
+		realFission = `Real: ${reactor.fissionRate.toFixed(2)}, Desired: ${fissionRate.toFixed(2)}`;
+
+		// Battery Controller
+
+		// Amount of excess power on the grid
+		const current = Powered.Grid.Power - Powered.Grid.Load * targetVoltage;
+		const batteryGridChargeRate = current * batteryChargeUnits;
+
+		// Batteries have too little charge, increase battery charge rate and reactor output
+		const batteryFillChargeRage = targetBatteryCharge - b1.GetChargePercentage();
+
+		// Increase the batteries charge rate to soak up extra power from the grid and keep voltage at target
+		if (targetVoltage <= 1) setBatteryChargeRate(Math.max(roundUpToNearestTens(Math.max(batteryFillChargeRage, batteryGridChargeRate)), 10));
+		else setBatteryChargeRate(roundDownToNearestTens(Math.max(batteryFillChargeRage, batteryGridChargeRate)));
+
+		// Simulate someone repairing the grid occasionally when we are overvolting
+		if (simInfo.tick % (simInfo.tickRate * 60) === 0) Powered.Grid.Health = Powered.Grid.MaxHealth;
+	};
+
+	// Best for 1v maintain, needs autoTemp enabled for best results
 	const ARCv2 = () => {
+		reactor.autoTemp = true;
 		// Reactor Controller
 
 		// The current power the batteries are consuming from the grid
@@ -102,11 +147,12 @@ while (true) {
 		const batteryFillChargeRage = targetBatteryCharge - b1.GetChargePercentage();
 
 		// Increase the batteries charge rate to soak up extra power from the grid and keep voltage at target
-		setBatteryChargeRate(Math.max(roundToNearestTens(Math.max(batteryFillChargeRage, batteryGridChargeRate)), 10));
+		setBatteryChargeRate(Math.max(roundUpToNearestTens(Math.max(batteryFillChargeRage, batteryGridChargeRate)), 10));
 	};
 
 	// Battery helpers;
-	const roundToNearestTens = (num: number): number => Math.round(num / 10) * 10 + 10;
+	const roundUpToNearestTens = (num: number): number => Math.round(num / 10) * 10 + 10;
+	const roundDownToNearestTens = (num: number): number => Math.floor(num / 10) * 10;
 
 	const rollingVoltage = new Rolling(2);
 	const logic = (simInfo: SimInfo) => {
@@ -127,7 +173,8 @@ while (true) {
 		sumVoltage += Powered.Grid.Voltage;
 		sumLoad += Powered.Grid.Load;
 
-		ARCv2();
+		// ARCv2();
+		ARCv3(simInfo);
 
 		if (exit.length > 0) {
 			console.clear();
@@ -150,8 +197,8 @@ while (true) {
 		const meanLoad = {
 			minLoad: 500,
 			maxLoad: b1.maxRechargeSpeed * batteries.length + reactor.maxPowerOutput,
-			maxLoadSpike: 2000,
-			maxAvgLoad: 3000,
+			maxLoadSpike: 4000,
+			maxAvgLoad: 4000,
 			currentAvgLoad: sumLoad / simInfo.tick,
 		};
 
@@ -160,7 +207,7 @@ while (true) {
 		const sineLoad = {
 			minLoad: 500,
 			maxLoad: 6000,
-			maxLoadSpike: 3000,
+			maxLoadSpike: 200,
 			maxAvgLoad: 3000,
 			currentAvgLoad: sumLoad / simInfo.tick,
 		};
@@ -168,16 +215,16 @@ while (true) {
 		loadGenerator.normalLoad(sineLoad);
 		sineGenerator.sineLoad(0, 2000, simInfo.tick, 1);
 
-		// Simulate someone repairing the grid occasionally
-		// if (simInfo.tick % (simInfo.tickRate * 60 * 15) === 0) Powered.Grid.Health = Powered.Grid.MaxHealth;
+		// loadGenerator.Load = 2000;
+
 		// reduce every tick to keep deltas up to date
 
-		if (simInfo.status === SimStatus.RealTime && simInfo.tick % 3 === 0) {
+		if (simInfo.status === SimStatus.RealTime) {
 			console.clear();
 			console.log(logReducer(simInfo));
 		} else if (!iterate) LogHelper.TickHelpers(simInfo);
 
-		if (b1.GetChargePercentage() >= 99.9) return SimStatus.RealTime;
+		// if (b1.GetChargePercentage() >= 99.9) return SimStatus.RealTime;
 	};
 
 	new Simulator({
