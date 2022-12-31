@@ -37,7 +37,7 @@ while (true) {
 		powerOn: true,
 	});
 
-	const batteries = Array.apply(null, Array(5)).map(() => new PowerContainer({ charge: 2000 }));
+	const batteries = Array.apply(null, Array(5)).map(() => new PowerContainer({ charge: 1000 }));
 	const setBatteryChargeRate = (rate: number) => batteries.map((b) => b.SetChargeRate(rate));
 
 	const loadGenerator = new LoadGenerator();
@@ -60,9 +60,6 @@ while (true) {
 	const logReducer = makeReducer({ reactor, batteries, loadGenerators: [loadGenerator, sineGenerator], extras: [arcReducer], iterReducer: iterate ? iterReducer : undefined });
 
 	const b1 = batteries[0];
-	const efficiency = 75;
-	const efficiency2v = 75;
-	const batteryChargeUnits = 100 / b1.maxRechargeSpeed / batteries.length;
 
 	let maxSeenVoltage = 0;
 	let sumVoltage = 0;
@@ -74,11 +71,23 @@ while (true) {
 
 	let sumLoad = 0;
 
+	// Components:
+	// MEM: 5
+	// ADD: 5
+	// DIV: 5
+	// MULT: 4
+	// MIN: 1
+	// MAX: 1
+	// LT: 1
+
+	// Total: 17 Ops + 5 Mem
+
+	// Constants:
 	const targetBatteryCharge = 50;
-
 	const reactorMaxPower = reactor.maxPowerOutput / 100;
-
 	const targetVoltage: number = 1;
+	const efficiency = 75;
+	const batteryChargeUnits = 100 / b1.maxRechargeSpeed / batteries.length;
 
 	let load = 0;
 	const ARCv3 = (simInfo: SimInfo) => {
@@ -101,7 +110,7 @@ while (true) {
 		const bangBang = turbineRate < currentTurbineRate ? 0 : 100;
 		reactor.SetTurbineOutput(bangBang);
 
-		const fissionRate = bangBang / (reactor.GetFuelOut() / efficiency2v);
+		const fissionRate = bangBang / (reactor.GetFuelOut() / efficiency);
 		reactor.SetFissionRate(fissionRate);
 
 		// Battery Controller
@@ -177,12 +186,12 @@ while (true) {
 			minLoad: 500,
 			maxLoad: reactor.maxPowerOutput / 4,
 			maxLoadSpike: 200,
-			maxAvgLoad: reactor.maxPowerOutput / 2,
+			maxAvgLoad: reactor.maxPowerOutput / 4,
 			currentAvgLoad: sumLoad / simInfo.tick,
 		};
 
-		loadGenerator.normalLoad(sineLoad);
-		sineGenerator.sineLoad(500, reactor.maxPowerOutput / 2, simInfo.tick, 1);
+		// loadGenerator.normalLoad(sineLoad);
+		sineGenerator.sineLoad(500, reactor.maxPowerOutput / 2, simInfo.tick, 0.2);
 
 		// loadGenerator.Load = 2000;
 
@@ -199,9 +208,9 @@ while (true) {
 	new Simulator({
 		simulate: Powered.PoweredList,
 		logic,
-		type: SimStatus.Endless,
+		type: SimStatus.RealTime,
 		tickRate: 20,
-		simSpeed: 1,
+		simSpeed: 2,
 	}).start();
 
 	if (!iterate) break;
